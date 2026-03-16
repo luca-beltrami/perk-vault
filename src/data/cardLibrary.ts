@@ -9,6 +9,18 @@ export type Issuer =
 
 export type Network = 'Amex' | 'Visa' | 'Mastercard';
 
+export type PerkFrequency = 'monthly' | 'quarterly' | 'semi-annual' | 'annual';
+
+export interface Perk {
+  id: string;
+  name: string;
+  amount: number;
+  frequency: PerkFrequency;
+  description: string;
+  isH1?: boolean;
+  isH2?: boolean;
+}
+
 export interface Card {
   id: string;
   name: string;
@@ -16,6 +28,7 @@ export interface Card {
   network: Network;
   annualFee: number;
   color: string;
+  perks: Perk[];
 }
 
 export const cardLibrary: Card[] = [
@@ -26,6 +39,110 @@ export const cardLibrary: Card[] = [
     network: 'Amex',
     annualFee: 895,
     color: '#A8A9AD',
+    perks: [
+      {
+        id: 'amex-platinum-uber-cash',
+        name: 'Uber Cash',
+        amount: 15,
+        frequency: 'monthly',
+        description: 'Add Platinum to Uber app. Select Amex card at checkout. Bonus $20 in December.',
+      },
+      {
+        id: 'amex-platinum-digital-entertainment',
+        name: 'Digital Entertainment Credit',
+        amount: 25,
+        frequency: 'monthly',
+        description: 'Disney+, Hulu, NYT, WSJ, YouTube TV/Premium, Peacock, Paramount+, ESPN+. Enroll first.',
+      },
+      {
+        id: 'amex-platinum-walmart-plus',
+        name: 'Walmart+ Credit',
+        amount: 12.95,
+        frequency: 'monthly',
+        description: 'Covers one Walmart+ monthly membership. Must pay with Platinum. Plus Ups excluded.',
+      },
+      {
+        id: 'amex-platinum-lululemon',
+        name: 'Lululemon Credit',
+        amount: 75,
+        frequency: 'quarterly',
+        description: "Enroll first. Check 'We Made Too Much' sale section for deals.",
+      },
+      {
+        id: 'amex-platinum-resy-dining',
+        name: 'Resy Dining Credit',
+        amount: 100,
+        frequency: 'quarterly',
+        description: 'No reservation required — just pay at a U.S. Resy restaurant. Enroll first.',
+      },
+      {
+        id: 'amex-platinum-saks-h1',
+        name: 'Saks Credit (H1)',
+        amount: 50,
+        frequency: 'semi-annual',
+        description: 'Jan–Jun. Enroll in account. Saks OFF 5th does not qualify.',
+        isH1: true,
+      },
+      {
+        id: 'amex-platinum-saks-h2',
+        name: 'Saks Credit (H2)',
+        amount: 50,
+        frequency: 'semi-annual',
+        description: 'Jul–Dec. Orders must ship by June 30 to count for H1.',
+        isH2: true,
+      },
+      {
+        id: 'amex-platinum-hotel-h1',
+        name: 'Hotel Credit (H1)',
+        amount: 300,
+        frequency: 'semi-annual',
+        description: 'Jan–Jun. Fine Hotels + Resorts or The Hotel Collection (2-night minimum stay).',
+        isH1: true,
+      },
+      {
+        id: 'amex-platinum-hotel-h2',
+        name: 'Hotel Credit (H2)',
+        amount: 300,
+        frequency: 'semi-annual',
+        description: 'Jul–Dec. Fine Hotels + Resorts or The Hotel Collection (2-night minimum stay).',
+        isH2: true,
+      },
+      {
+        id: 'amex-platinum-equinox',
+        name: 'Equinox Credit',
+        amount: 300,
+        frequency: 'annual',
+        description: 'Up to $300/yr on Equinox club membership or Equinox+ digital subscription. Enroll first.',
+      },
+      {
+        id: 'amex-platinum-airline-fee',
+        name: 'Airline Fee Credit',
+        amount: 200,
+        frequency: 'annual',
+        description: 'Incidental fees (bags, seat upgrades) on one selected airline. Choose airline in account.',
+      },
+      {
+        id: 'amex-platinum-clear-plus',
+        name: 'CLEAR+ Credit',
+        amount: 209,
+        frequency: 'annual',
+        description: 'Statement credit for CLEAR Plus membership at airports.',
+      },
+      {
+        id: 'amex-platinum-global-entry',
+        name: 'Global Entry Credit',
+        amount: 120,
+        frequency: 'annual',
+        description: 'Every 4 years for Global Entry ($120) or 4.5 years for TSA PreCheck ($85).',
+      },
+      {
+        id: 'amex-platinum-uber-one',
+        name: 'Uber One Credit',
+        amount: 120,
+        frequency: 'annual',
+        description: 'Covers auto-renewing Uber One membership (~$9.99/mo). Must pay with Platinum.',
+      },
+    ],
   },
   {
     id: 'amex-platinum-business',
@@ -34,6 +151,68 @@ export const cardLibrary: Card[] = [
     network: 'Amex',
     annualFee: 695,
     color: '#8C8C8C',
+    perks: [
+      {
+        id: 'amex-plat-biz-dell-h1',
+        name: 'Dell Credit (H1)',
+        amount: 200,
+        frequency: 'semi-annual',
+        description: 'Jan–Jun. U.S. Dell Technologies purchases only.',
+        isH1: true,
+      },
+      {
+        id: 'amex-plat-biz-dell-h2',
+        name: 'Dell Credit (H2)',
+        amount: 200,
+        frequency: 'semi-annual',
+        description: 'Jul–Dec. U.S. Dell Technologies purchases only.',
+        isH2: true,
+      },
+      {
+        id: 'amex-plat-biz-hotel-h1',
+        name: 'Hotel Credit (H1)',
+        amount: 150,
+        frequency: 'semi-annual',
+        description: 'Jan–Jun. Fine Hotels + Resorts via Amex Travel.',
+        isH1: true,
+      },
+      {
+        id: 'amex-plat-biz-hotel-h2',
+        name: 'Hotel Credit (H2)',
+        amount: 150,
+        frequency: 'semi-annual',
+        description: 'Jul–Dec. Fine Hotels + Resorts via Amex Travel.',
+        isH2: true,
+      },
+      {
+        id: 'amex-plat-biz-airline-fee',
+        name: 'Airline Fee Credit',
+        amount: 200,
+        frequency: 'annual',
+        description: 'Incidental fees on one selected airline. Select airline in Amex account.',
+      },
+      {
+        id: 'amex-plat-biz-clear-plus',
+        name: 'CLEAR+ Credit',
+        amount: 209,
+        frequency: 'annual',
+        description: 'Statement credit for CLEAR Plus membership at airports.',
+      },
+      {
+        id: 'amex-plat-biz-global-entry',
+        name: 'Global Entry Credit',
+        amount: 120,
+        frequency: 'annual',
+        description: 'Every 4 years for Global Entry.',
+      },
+      {
+        id: 'amex-plat-biz-wireless',
+        name: 'Wireless Credit',
+        amount: 120,
+        frequency: 'annual',
+        description: '$10/mo credit on U.S. wireless phone service providers.',
+      },
+    ],
   },
   {
     id: 'amex-gold',
@@ -42,6 +221,45 @@ export const cardLibrary: Card[] = [
     network: 'Amex',
     annualFee: 325,
     color: '#C9A84C',
+    perks: [
+      {
+        id: 'amex-gold-uber-cash',
+        name: 'Uber Cash',
+        amount: 10,
+        frequency: 'monthly',
+        description: "Add Gold to Uber app. Valid on Uber Eats & rides in U.S. Expires monthly — doesn't roll over.",
+      },
+      {
+        id: 'amex-gold-dining',
+        name: 'Dining Credit',
+        amount: 10,
+        frequency: 'monthly',
+        description: 'Grubhub, The Cheesecake Factory, Goldbelly, Wine.com, Five Guys. Enroll first.',
+      },
+      {
+        id: 'amex-gold-dunkin',
+        name: "Dunkin' Credit",
+        amount: 7,
+        frequency: 'monthly',
+        description: "At U.S. Dunkin' locations only. Enroll first. Up to $84/year total.",
+      },
+      {
+        id: 'amex-gold-resy-h1',
+        name: 'Resy Credit (H1)',
+        amount: 50,
+        frequency: 'semi-annual',
+        description: 'Jan–Jun. Pay with Gold at any U.S. Resy restaurant. No reservation required. Enroll first.',
+        isH1: true,
+      },
+      {
+        id: 'amex-gold-resy-h2',
+        name: 'Resy Credit (H2)',
+        amount: 50,
+        frequency: 'semi-annual',
+        description: 'Jul–Dec. Pay with Gold at any U.S. Resy restaurant.',
+        isH2: true,
+      },
+    ],
   },
   {
     id: 'chase-sapphire-reserve',
@@ -50,6 +268,105 @@ export const cardLibrary: Card[] = [
     network: 'Visa',
     annualFee: 795,
     color: '#1A1F71',
+    perks: [
+      {
+        id: 'csr-doordash-restaurant',
+        name: 'DoorDash Restaurant Promo',
+        amount: 5,
+        frequency: 'monthly',
+        description: 'Must be enrolled in DashPass & use CSR at checkout. Activate by 12/31/27. Forfeited if unused.',
+      },
+      {
+        id: 'csr-doordash-non-restaurant',
+        name: 'DoorDash Non-Restaurant Promo',
+        amount: 20,
+        frequency: 'monthly',
+        description: 'Two $10 promos for groceries/retail orders. Separate transactions. Activate by 12/31/27.',
+      },
+      {
+        id: 'csr-lyft',
+        name: 'Lyft Credit',
+        amount: 10,
+        frequency: 'monthly',
+        description: 'In-app credit for Lyft rides. Valid through 9/30/27.',
+      },
+      {
+        id: 'csr-peloton',
+        name: 'Peloton Membership Credit',
+        amount: 10,
+        frequency: 'monthly',
+        description: 'Valid on Peloton app or All-Access memberships. Through 12/31/27.',
+      },
+      {
+        id: 'csr-dining-h1',
+        name: 'Dining Credit (H1)',
+        amount: 150,
+        frequency: 'semi-annual',
+        description: 'Jan–Jun. Sapphire Reserve Exclusive Tables on OpenTable.',
+        isH1: true,
+      },
+      {
+        id: 'csr-dining-h2',
+        name: 'Dining Credit (H2)',
+        amount: 150,
+        frequency: 'semi-annual',
+        description: 'Jul–Dec. Sapphire Reserve Exclusive Tables on OpenTable.',
+        isH2: true,
+      },
+      {
+        id: 'csr-hotel-h1',
+        name: 'Hotel Credit (H1)',
+        amount: 250,
+        frequency: 'semi-annual',
+        description: 'Jan–Jun. Prepaid stays with The Edit by Chase Travel. 2-night minimum.',
+        isH1: true,
+      },
+      {
+        id: 'csr-hotel-h2',
+        name: 'Hotel Credit (H2)',
+        amount: 250,
+        frequency: 'semi-annual',
+        description: 'Jul–Dec. Prepaid stays with The Edit by Chase Travel. 2-night minimum.',
+        isH2: true,
+      },
+      {
+        id: 'csr-stubhub-h1',
+        name: 'StubHub/Viagogo Credit (H1)',
+        amount: 150,
+        frequency: 'semi-annual',
+        description: 'Jan–Jun. Concerts and events on StubHub.com or viagogo.com. Activation required.',
+        isH1: true,
+      },
+      {
+        id: 'csr-stubhub-h2',
+        name: 'StubHub/Viagogo Credit (H2)',
+        amount: 150,
+        frequency: 'semi-annual',
+        description: 'Jul–Dec. Concerts and events on StubHub.com or viagogo.com.',
+        isH2: true,
+      },
+      {
+        id: 'csr-travel',
+        name: 'Travel Credit',
+        amount: 300,
+        frequency: 'annual',
+        description: 'Automatic credit on any travel purchase — tolls, transit, parking, flights, hotels, etc.',
+      },
+      {
+        id: 'csr-global-entry',
+        name: 'Global Entry Credit',
+        amount: 120,
+        frequency: 'annual',
+        description: 'Statement credit every 4 years.',
+      },
+      {
+        id: 'csr-apple-tv-music',
+        name: 'Apple TV+ & Apple Music',
+        amount: 288,
+        frequency: 'annual',
+        description: 'Complimentary subscriptions ($24/mo value). Activate separately. Valid through 6/22/2027.',
+      },
+    ],
   },
   {
     id: 'chase-sapphire-reserve-business',
@@ -58,6 +375,82 @@ export const cardLibrary: Card[] = [
     network: 'Visa',
     annualFee: 695,
     color: '#141852',
+    perks: [
+      {
+        id: 'csrb-doordash-restaurant',
+        name: 'DoorDash Restaurant Promo',
+        amount: 5,
+        frequency: 'monthly',
+        description: 'Must be enrolled in DashPass & use card at checkout. Activate by 12/31/27.',
+      },
+      {
+        id: 'csrb-doordash-non-restaurant',
+        name: 'DoorDash Non-Restaurant Promo',
+        amount: 20,
+        frequency: 'monthly',
+        description: 'Two $10 promos for groceries/retail. Separate transactions. Activate by 12/31/27.',
+      },
+      {
+        id: 'csrb-lyft',
+        name: 'Lyft Credit',
+        amount: 10,
+        frequency: 'monthly',
+        description: 'In-app credit for Lyft rides. Valid through 9/30/27.',
+      },
+      {
+        id: 'csrb-dining-h1',
+        name: 'Dining Credit (H1)',
+        amount: 150,
+        frequency: 'semi-annual',
+        description: 'Jan–Jun. Sapphire Reserve Exclusive Tables via OpenTable.',
+        isH1: true,
+      },
+      {
+        id: 'csrb-dining-h2',
+        name: 'Dining Credit (H2)',
+        amount: 150,
+        frequency: 'semi-annual',
+        description: 'Jul–Dec. Sapphire Reserve Exclusive Tables via OpenTable.',
+        isH2: true,
+      },
+      {
+        id: 'csrb-hotel-h1',
+        name: 'Hotel Credit (H1)',
+        amount: 250,
+        frequency: 'semi-annual',
+        description: 'Jan–Jun. Prepaid stays with The Edit by Chase Travel. 2-night minimum.',
+        isH1: true,
+      },
+      {
+        id: 'csrb-hotel-h2',
+        name: 'Hotel Credit (H2)',
+        amount: 250,
+        frequency: 'semi-annual',
+        description: 'Jul–Dec. Prepaid stays with The Edit by Chase Travel. 2-night minimum.',
+        isH2: true,
+      },
+      {
+        id: 'csrb-travel',
+        name: 'Travel Credit',
+        amount: 300,
+        frequency: 'annual',
+        description: 'On travel purchases through Chase Travel.',
+      },
+      {
+        id: 'csrb-global-entry',
+        name: 'Global Entry Credit',
+        amount: 120,
+        frequency: 'annual',
+        description: 'Statement credit every 4 years.',
+      },
+      {
+        id: 'csrb-apple-tv-music',
+        name: 'Apple TV+ & Apple Music',
+        amount: 288,
+        frequency: 'annual',
+        description: 'Complimentary subscriptions. Activate separately.',
+      },
+    ],
   },
   {
     id: 'chase-sapphire-preferred',
@@ -66,6 +459,22 @@ export const cardLibrary: Card[] = [
     network: 'Visa',
     annualFee: 95,
     color: '#2E5299',
+    perks: [
+      {
+        id: 'csp-doordash-non-restaurant',
+        name: 'DoorDash Non-Restaurant Promo',
+        amount: 10,
+        frequency: 'monthly',
+        description: '$10/mo off non-restaurant DoorDash orders. Activate by 12/31/27.',
+      },
+      {
+        id: 'csp-hotel',
+        name: 'Hotel Credit',
+        amount: 50,
+        frequency: 'annual',
+        description: 'On hotel stays booked through Chase Travel portal.',
+      },
+    ],
   },
   {
     id: 'chase-freedom-unlimited',
@@ -74,6 +483,22 @@ export const cardLibrary: Card[] = [
     network: 'Visa',
     annualFee: 0,
     color: '#0072CE',
+    perks: [
+      {
+        id: 'cfu-doordash-non-restaurant',
+        name: 'DoorDash Non-Restaurant Promo',
+        amount: 10,
+        frequency: 'monthly',
+        description: '$10/mo off non-restaurant DoorDash orders with DashPass. Activate by 12/31/27.',
+      },
+      {
+        id: 'cfu-lyft',
+        name: 'Lyft Credit',
+        amount: 10,
+        frequency: 'monthly',
+        description: '$10/mo in Lyft in-app credits. Valid through 9/30/27.',
+      },
+    ],
   },
   {
     id: 'chase-freedom-flex',
@@ -82,6 +507,29 @@ export const cardLibrary: Card[] = [
     network: 'Mastercard',
     annualFee: 0,
     color: '#00A9E0',
+    perks: [
+      {
+        id: 'cff-doordash-non-restaurant',
+        name: 'DoorDash Non-Restaurant Promo',
+        amount: 10,
+        frequency: 'monthly',
+        description: '$10/mo off non-restaurant DoorDash orders with DashPass. Activate by 12/31/27.',
+      },
+      {
+        id: 'cff-lyft',
+        name: 'Lyft Credit',
+        amount: 10,
+        frequency: 'monthly',
+        description: '$10/mo in Lyft in-app credits. Valid through 9/30/27.',
+      },
+      {
+        id: 'cff-rotating-category',
+        name: '5% Rotating Category Reminder',
+        amount: 0,
+        frequency: 'quarterly',
+        description: 'Activate new 5% bonus category each quarter at chase.com/Freedom. Categories rotate Jan/Apr/Jul/Oct.',
+      },
+    ],
   },
   {
     id: 'united-explorer',
@@ -90,6 +538,43 @@ export const cardLibrary: Card[] = [
     network: 'Visa',
     annualFee: 95,
     color: '#005DAA',
+    perks: [
+      {
+        id: 'united-explorer-instacart',
+        name: 'Instacart Credit',
+        amount: 10,
+        frequency: 'monthly',
+        description: 'Activate Instacart+ at instacart.com/chase-united. $10 credit at start of each month — does not roll over. Valid through 12/31/27. Must pay with Explorer card on a $10+ order.',
+      },
+      {
+        id: 'united-explorer-checked-bag',
+        name: 'Free Checked Bag',
+        amount: 35,
+        frequency: 'annual',
+        description: 'First checked bag free for you and one companion on United flights. Must pay with card and book direct.',
+      },
+      {
+        id: 'united-explorer-club-passes',
+        name: 'United Club Passes',
+        amount: 59,
+        frequency: 'annual',
+        description: 'Two one-time United Club passes per year. Present card at lounge entrance.',
+      },
+      {
+        id: 'united-explorer-global-entry',
+        name: 'Global Entry / TSA PreCheck',
+        amount: 120,
+        frequency: 'annual',
+        description: 'Up to $120 statement credit every 4 years for Global Entry ($120) or TSA PreCheck ($85).',
+      },
+      {
+        id: 'united-explorer-inflight-discount',
+        name: '25% Inflight Discount',
+        amount: 0,
+        frequency: 'annual',
+        description: '25% back as a statement credit on inflight food, beverage & Wi-Fi purchases on United.',
+      },
+    ],
   },
   {
     id: 'united-business',
@@ -98,6 +583,50 @@ export const cardLibrary: Card[] = [
     network: 'Visa',
     annualFee: 99,
     color: '#004C97',
+    perks: [
+      {
+        id: 'united-biz-instacart',
+        name: 'Instacart Credit',
+        amount: 10,
+        frequency: 'monthly',
+        description: 'Activate Instacart+ at instacart.com/chase-united. $10 credit at start of each month — does not roll over. Valid through 12/31/27. Must pay with Business card on a $10+ order.',
+      },
+      {
+        id: 'united-biz-checked-bag',
+        name: 'Free Checked Bag',
+        amount: 35,
+        frequency: 'annual',
+        description: 'First checked bag free for you and one companion on United flights. Book direct and pay with card.',
+      },
+      {
+        id: 'united-biz-club-passes',
+        name: 'United Club Passes',
+        amount: 59,
+        frequency: 'annual',
+        description: 'Two one-time United Club passes each cardmember year. Present card at lounge.',
+      },
+      {
+        id: 'united-biz-anniversary-miles',
+        name: '5,000 Anniversary Miles',
+        amount: 50,
+        frequency: 'annual',
+        description: '5,000 bonus miles each year you have both the United Business Card and a personal United card.',
+      },
+      {
+        id: 'united-biz-inflight-discount',
+        name: '25% Inflight Discount',
+        amount: 0,
+        frequency: 'annual',
+        description: '25% back as statement credit on inflight food, beverage & Wi-Fi on United.',
+      },
+      {
+        id: 'united-biz-employee-cards',
+        name: 'Employee Cards Earning',
+        amount: 0,
+        frequency: 'annual',
+        description: 'Add employee cards for no additional annual fee — all spending earns miles on your account.',
+      },
+    ],
   },
   {
     id: 'capital-one-venture-x',
@@ -106,6 +635,29 @@ export const cardLibrary: Card[] = [
     network: 'Visa',
     annualFee: 395,
     color: '#D03027',
+    perks: [
+      {
+        id: 'venture-x-travel',
+        name: 'Travel Credit',
+        amount: 300,
+        frequency: 'annual',
+        description: 'Bookings made through Capital One Travel portal only.',
+      },
+      {
+        id: 'venture-x-anniversary-miles',
+        name: 'Anniversary Bonus Miles',
+        amount: 100,
+        frequency: 'annual',
+        description: '10,000 bonus miles (worth ~$100) credited each account anniversary.',
+      },
+      {
+        id: 'venture-x-global-entry',
+        name: 'Global Entry Credit',
+        amount: 120,
+        frequency: 'annual',
+        description: 'Statement credit every 4 years for Global Entry or TSA PreCheck.',
+      },
+    ],
   },
   {
     id: 'hilton-honors-aspire',
@@ -114,6 +666,45 @@ export const cardLibrary: Card[] = [
     network: 'Amex',
     annualFee: 550,
     color: '#1A4A8A',
+    perks: [
+      {
+        id: 'hilton-aspire-resort-h1',
+        name: 'Hilton Resort Credit (H1)',
+        amount: 200,
+        frequency: 'semi-annual',
+        description: 'Jan–Jun. Eligible charges at Hilton resort properties only.',
+        isH1: true,
+      },
+      {
+        id: 'hilton-aspire-resort-h2',
+        name: 'Hilton Resort Credit (H2)',
+        amount: 200,
+        frequency: 'semi-annual',
+        description: 'Jul–Dec. Eligible charges at Hilton resort properties only.',
+        isH2: true,
+      },
+      {
+        id: 'hilton-aspire-airline-fee',
+        name: 'Airline Fee Credit',
+        amount: 200,
+        frequency: 'annual',
+        description: 'Incidental fees on one selected airline. Enroll and select airline first.',
+      },
+      {
+        id: 'hilton-aspire-free-night',
+        name: 'Free Weekend Night Award',
+        amount: 150,
+        frequency: 'annual',
+        description: 'Certificate valid for one free weekend night. Issued at renewal.',
+      },
+      {
+        id: 'hilton-aspire-global-entry',
+        name: 'Global Entry Credit',
+        amount: 120,
+        frequency: 'annual',
+        description: 'Statement credit every 4 years.',
+      },
+    ],
   },
   {
     id: 'marriott-bonvoy-brilliant',
@@ -122,6 +713,29 @@ export const cardLibrary: Card[] = [
     network: 'Amex',
     annualFee: 650,
     color: '#8B1A2F',
+    perks: [
+      {
+        id: 'marriott-brilliant-dining',
+        name: 'Dining Credit',
+        amount: 25,
+        frequency: 'monthly',
+        description: 'At restaurants worldwide. Up to $300/year total.',
+      },
+      {
+        id: 'marriott-brilliant-free-night',
+        name: 'Free Night Award',
+        amount: 200,
+        frequency: 'annual',
+        description: 'Annual certificate for one free night (up to 85,000 Marriott points). Issued at renewal.',
+      },
+      {
+        id: 'marriott-brilliant-global-entry',
+        name: 'Global Entry Credit',
+        amount: 120,
+        frequency: 'annual',
+        description: 'Statement credit every 4 years.',
+      },
+    ],
   },
   {
     id: 'delta-skymiles-reserve',
@@ -130,6 +744,22 @@ export const cardLibrary: Card[] = [
     network: 'Amex',
     annualFee: 650,
     color: '#003A70',
+    perks: [
+      {
+        id: 'delta-reserve-companion',
+        name: 'Companion Certificate',
+        amount: 300,
+        frequency: 'annual',
+        description: 'Annual first-class companion certificate. Must be used on domestic Delta flight.',
+      },
+      {
+        id: 'delta-reserve-global-entry',
+        name: 'Global Entry Credit',
+        amount: 120,
+        frequency: 'annual',
+        description: 'Statement credit every 4 years.',
+      },
+    ],
   },
   {
     id: 'citi-strata-elite',
@@ -138,5 +768,28 @@ export const cardLibrary: Card[] = [
     network: 'Mastercard',
     annualFee: 595,
     color: '#003B70',
+    perks: [
+      {
+        id: 'citi-strata-travel',
+        name: 'Travel Credit',
+        amount: 300,
+        frequency: 'annual',
+        description: 'On travel purchases through Citi Travel portal.',
+      },
+      {
+        id: 'citi-strata-hotel',
+        name: 'Hotel Credit',
+        amount: 200,
+        frequency: 'annual',
+        description: 'On hotel purchases through Citi Travel portal.',
+      },
+      {
+        id: 'citi-strata-global-entry',
+        name: 'Global Entry Credit',
+        amount: 120,
+        frequency: 'annual',
+        description: 'Statement credit every 4 years.',
+      },
+    ],
   },
 ];
