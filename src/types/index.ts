@@ -30,3 +30,58 @@ export interface Card {
   color: string;
   perks: Perk[];
 }
+
+// --- User data model ---
+
+export interface UserPerk {
+  id: string;
+  perkId: string;
+  used: boolean;
+  skipped: boolean;
+  usedAt?: string;
+}
+
+export interface UserCard {
+  id: string;
+  cardLibraryId: string;
+  name: string;
+  colorIdx: number;
+  anniversaryMonth?: number;
+  perks: UserPerk[];
+}
+
+export interface BonusChallenge {
+  id: string;
+  cardName: string;
+  bonusDescription: string;
+  minSpend: number;
+  currentSpend: number;
+  deadline: string;
+  bonusValue?: number;
+  completed: boolean;
+  note?: string;
+}
+
+export interface MilestoneRecord {
+  id: string;
+  cardId: string;
+  type: string;
+  achievedAt: string;
+}
+
+export interface NotificationSettings {
+  expiryReminders: boolean;
+  monthlyDaysBefore: number;
+  quarterlyDaysBefore: number;
+  semiAnnualDaysBefore: number;
+  annualFeeReminders: boolean;
+  annualFeeDaysBefore: number;
+}
+
+export interface AppState {
+  cards: UserCard[];
+  challenges: BonusChallenge[];
+  milestoneHistory: MilestoneRecord[];
+  settings: NotificationSettings;
+  lastUpdated: string;
+}
