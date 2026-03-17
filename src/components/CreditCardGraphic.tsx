@@ -30,7 +30,7 @@ export default function CreditCardGraphic({ cardId, cardName, network, width }: 
   const chipInnerW  = Math.round(chipW * 0.60);
   const chipInnerH  = Math.round(chipH * 0.59);
   const shimmerTop  = Math.round(height * 0.44);
-  const nameFontSize    = Math.round(width * 0.09);
+  const nameFontSize    = Math.round(width * 0.07);
   const networkFontSize = Math.round(width * 0.08);
 
   return (
@@ -39,7 +39,7 @@ export default function CreditCardGraphic({ cardId, cardName, network, width }: 
         colors={colors as unknown as [string, string, string]}
         start={{ x: 0, y: 0.5 }}
         end={{ x: 1, y: 0.5 }}
-        style={{ width, height, borderRadius: 12, overflow: 'hidden', padding: pad, justifyContent: 'space-between' }}
+        style={{ width, height, borderRadius: 12, overflow: 'hidden', paddingTop: pad, paddingHorizontal: pad, paddingBottom: Math.round(pad * 1.5), justifyContent: 'space-between' }}
       >
         {/* EMV chip */}
         <View style={{
@@ -74,8 +74,7 @@ export default function CreditCardGraphic({ cardId, cardName, network, width }: 
               textShadowOffset: { width: 0, height: 1 },
               textShadowRadius: 2,
             }}
-            numberOfLines={1}
-            ellipsizeMode="tail"
+            numberOfLines={2}
           >
             {cardName}
           </Text>
