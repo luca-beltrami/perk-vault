@@ -16,7 +16,7 @@ interface Props {
 const NETWORK_LABEL: Record<Network, string> = {
   Amex: 'AMEX',
   Visa: 'VISA',
-  Mastercard: 'MASTERCARD',
+  Mastercard: 'MC',
 };
 
 export default function CreditCardGraphic({ cardId, cardName, network, width }: Props) {
