@@ -3,7 +3,7 @@ import {
   View,
   Text,
   TextInput,
-  SectionList,
+  ScrollView,
   TouchableOpacity,
   StyleSheet,
   SafeAreaView,
@@ -15,37 +15,74 @@ import { CardsStackParamList } from '../navigation/CardsStack';
 import { cardLibrary } from '../data/cardLibrary';
 import { useAppState } from '../hooks/useAppState';
 import { uuid } from '../utils/uuid';
-import type { Card } from '../types';
-import type { UserCard } from '../types';
+import type { Card, UserCard } from '../types';
 import CardDetailSheet from '../components/CardDetailSheet';
+import CardTile from '../components/CardTile';
 
 type Props = NativeStackScreenProps<CardsStackParamList, 'CardLibrary'>;
 
-function groupByIssuer(cards: Card[]) {
-  const map: Record<string, Card[]> = {};
-  for (const card of cards) {
-    if (!map[card.issuer]) map[card.issuer] = [];
-    map[card.issuer].push(card);
-  }
-  return Object.entries(map).map(([title, data]) => ({ title, data }));
+// ─── Sorting / grouping ──────────────────────────────────────────────────────
+
+function getHealthScore(userCard: UserCard): number {
+  if (userCard.perks.length === 0) return 1;
+  return userCard.perks.filter((p) => p.used).length / userCard.perks.length;
 }
+
+type DisplaySection = { title: string | null; cards: Card[] };
+
+function buildSections(
+  all: Card[],
+  query: string,
+  userCards: UserCard[],
+): DisplaySection[] {
+  const lower = query.toLowerCase().trim();
+  const filtered = lower
+    ? all.filter(
+        (c) =>
+          c.name.toLowerCase().includes(lower) ||
+          c.issuer.toLowerCase().includes(lower),
+      )
+    : all;
+
+  if (userCards.length === 0) {
+    // No vault cards → group by issuer, alphabetical within each group
+    const sorted = [...filtered].sort(
+      (a, b) => a.issuer.localeCompare(b.issuer) || a.name.localeCompare(b.name),
+    );
+    const map: Record<string, Card[]> = {};
+    for (const card of sorted) {
+      if (!map[card.issuer]) map[card.issuer] = [];
+      map[card.issuer].push(card);
+    }
+    return Object.entries(map).map(([title, cards]) => ({ title, cards }));
+  }
+
+  // Has vault cards → flat list, vault cards sorted by health score (lowest first),
+  // then non-vault cards sorted alphabetically
+  const vaultMap = new Map(userCards.map((uc) => [uc.cardLibraryId, uc]));
+  const sorted = [...filtered].sort((a, b) => {
+    const ucA = vaultMap.get(a.id);
+    const ucB = vaultMap.get(b.id);
+    if (ucA && ucB) return getHealthScore(ucA) - getHealthScore(ucB);
+    if (ucA) return -1;
+    if (ucB) return 1;
+    return a.issuer.localeCompare(b.issuer) || a.name.localeCompare(b.name);
+  });
+
+  return [{ title: null, cards: sorted }];
+}
+
+// ─── Screen ──────────────────────────────────────────────────────────────────
 
 export default function CardLibraryScreen({ navigation }: Props) {
   const [query, setQuery] = useState('');
   const [selectedCard, setSelectedCard] = useState<Card | null>(null);
   const { state, setState } = useAppState();
 
-  const sections = useMemo(() => {
-    const lower = query.toLowerCase().trim();
-    const filtered = lower
-      ? cardLibrary.filter(
-          (c) =>
-            c.name.toLowerCase().includes(lower) ||
-            c.issuer.toLowerCase().includes(lower),
-        )
-      : cardLibrary;
-    return groupByIssuer(filtered);
-  }, [query]);
+  const sections = useMemo(
+    () => buildSections(cardLibrary, query, state.cards),
+    [query, state.cards],
+  );
 
   const addedIds = useMemo(
     () => new Set(state.cards.map((c) => c.cardLibraryId)),
@@ -77,7 +114,12 @@ export default function CardLibraryScreen({ navigation }: Props) {
       <View style={styles.container}>
         {/* Search bar */}
         <View style={styles.searchWrapper}>
-          <Ionicons name="search-outline" size={18} color={Colors.textMuted} style={styles.searchIcon} />
+          <Ionicons
+            name="search-outline"
+            size={18}
+            color={Colors.textMuted}
+            style={styles.searchIcon}
+          />
           <TextInput
             style={styles.searchInput}
             placeholder="Search cards or issuers…"
@@ -89,45 +131,33 @@ export default function CardLibraryScreen({ navigation }: Props) {
           />
         </View>
 
-        <SectionList
-          sections={sections}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.listContent}
-          stickySectionHeadersEnabled={false}
-          renderSectionHeader={({ section }) => (
-            <Text style={styles.sectionHeader}>{section.title}</Text>
-          )}
-          renderItem={({ item, index, section }) => {
-            const isLast = index === section.data.length - 1;
-            const isAdded = addedIds.has(item.id);
-            return (
-              <TouchableOpacity
-                style={[styles.row, isLast && styles.rowLast]}
-                onPress={() => setSelectedCard(item)}
-                activeOpacity={0.6}
-              >
-                <View style={styles.rowLeft}>
-                  <Text style={styles.cardName}>{item.name}</Text>
-                  <Text style={styles.cardMeta}>
-                    {item.annualFee === 0 ? 'No annual fee' : `$${item.annualFee}/yr`}
-                    {'  ·  '}
-                    {item.perks.length} perks
-                    {isAdded ? '  ·  In vault' : ''}
-                  </Text>
-                </View>
-                {isAdded ? (
-                  <Ionicons name="checkmark-circle" size={20} color={Colors.success} />
-                ) : (
-                  <Ionicons name="chevron-forward" size={18} color={Colors.textMuted} />
-                )}
-              </TouchableOpacity>
-            );
-          }}
-          renderSectionFooter={() => <View style={styles.sectionGap} />}
-          ListEmptyComponent={
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
+          {sections.length === 0 && (
             <Text style={styles.emptyText}>No cards match "{query}"</Text>
-          }
-        />
+          )}
+
+          {sections.map((section, si) => (
+            <View key={si}>
+              {section.title !== null && (
+                <Text style={styles.sectionHeader}>{section.title}</Text>
+              )}
+              <View style={styles.grid}>
+                {section.cards.map((card) => (
+                  <CardTile
+                    key={card.id}
+                    card={card}
+                    isAdded={addedIds.has(card.id)}
+                    onPress={() => setSelectedCard(card)}
+                  />
+                ))}
+              </View>
+            </View>
+          ))}
+        </ScrollView>
 
         {selectedCard && (
           <CardDetailSheet
@@ -150,6 +180,7 @@ export default function CardLibraryScreen({ navigation }: Props) {
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: Colors.background },
   container: { flex: 1 },
+
   searchWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -169,7 +200,12 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: Colors.textPrimary,
   },
-  listContent: { paddingHorizontal: Spacing.lg, paddingBottom: Spacing.xxxl },
+
+  scrollContent: {
+    paddingHorizontal: Spacing.lg,
+    paddingBottom: Spacing.xxxl,
+  },
+
   sectionHeader: {
     fontFamily: Font.semiBold,
     fontSize: 13,
@@ -179,34 +215,13 @@ const styles = StyleSheet.create({
     marginTop: Spacing.lg,
     marginBottom: Spacing.sm,
   },
-  row: {
-    backgroundColor: Colors.surface,
-    paddingVertical: Spacing.lg,
-    paddingHorizontal: Spacing.lg,
+
+  grid: {
     flexDirection: 'row',
-    alignItems: 'center',
+    flexWrap: 'wrap',
     justifyContent: 'space-between',
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
-    borderTopLeftRadius: 0,
-    borderTopRightRadius: 0,
   },
-  rowLast: {
-    borderBottomWidth: 0,
-  },
-  rowLeft: { flex: 1, marginRight: Spacing.sm },
-  cardName: {
-    fontFamily: Font.semiBold,
-    fontSize: 15,
-    color: Colors.textPrimary,
-  },
-  cardMeta: {
-    fontFamily: Font.regular,
-    fontSize: 13,
-    color: Colors.textMuted,
-    marginTop: Spacing.xs,
-  },
-  sectionGap: { height: Spacing.xs },
+
   emptyText: {
     fontFamily: Font.regular,
     fontSize: 15,
