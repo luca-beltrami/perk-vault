@@ -40,6 +40,7 @@ export interface UserPerk {
   used: boolean;
   skipped: boolean;
   usedAt?: string;
+  skippedPeriod?: string;
 }
 
 export interface UserCard {

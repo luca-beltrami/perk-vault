@@ -20,6 +20,7 @@ import {
   resolveAllPerks,
   formatDaysRemaining,
   urgencyColor,
+  getCurrentPeriodKey,
 } from '../utils/perkUtils';
 import type { ResolvedPerk, CarouselPerk } from '../utils/perkUtils';
 
@@ -34,12 +35,20 @@ const FREQ_LABEL: Record<string, string> = {
   annual: 'Annual',
 };
 
+interface UndoState {
+  userPerkId: string;
+  userCardId: string;
+  perkName: string;
+}
+
 export default function CardBenefitsScreen({ route, navigation }: Props) {
   const { userCardId } = route.params;
   const { state, setState } = useAppState();
   const now = useRef(new Date()).current;
 
   const [selectedPerk, setSelectedPerk] = useState<ResolvedPerk | null>(null);
+  const [undoState, setUndoState] = useState<UndoState | null>(null);
+  const undoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const userCard = state.cards.find((c) => c.id === userCardId);
   const libCard = userCard ? cardLibrary.find((c) => c.id === userCard.cardLibraryId) : undefined;
@@ -55,11 +64,8 @@ export default function CardBenefitsScreen({ route, navigation }: Props) {
     return getCarouselPerks(userCard, libCard, now);
   }, [userCard, libCard, state.cards]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Update header title with card name
   React.useLayoutEffect(() => {
-    if (userCard) {
-      navigation.setOptions({ title: userCard.name });
-    }
+    if (userCard) navigation.setOptions({ title: userCard.name });
   }, [userCard?.name]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleMarkUsed = useCallback(
@@ -67,44 +73,60 @@ export default function CardBenefitsScreen({ route, navigation }: Props) {
       setState({
         ...state,
         cards: state.cards.map((c) =>
-          c.id !== rp.userCard.id
-            ? c
-            : {
-                ...c,
-                perks: c.perks.map((up) =>
-                  up.id !== rp.userPerk.id
-                    ? up
-                    : { ...up, used: true, usedAt: new Date().toISOString() },
-                ),
-              },
+          c.id !== rp.userCard.id ? c : {
+            ...c,
+            perks: c.perks.map((up) =>
+              up.id !== rp.userPerk.id ? up : { ...up, used: true, usedAt: new Date().toISOString() },
+            ),
+          },
         ),
         lastUpdated: new Date().toISOString(),
       });
       setSelectedPerk(null);
+      if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
+      setUndoState({ userPerkId: rp.userPerk.id, userCardId: rp.userCard.id, perkName: rp.perk.name });
+      undoTimerRef.current = setTimeout(() => setUndoState(null), 4000);
     },
     [state, setState],
   );
 
   const handleSkip = useCallback(
     (rp: ResolvedPerk) => {
+      const periodKey = getCurrentPeriodKey(rp.perk, now);
       setState({
         ...state,
         cards: state.cards.map((c) =>
-          c.id !== rp.userCard.id
-            ? c
-            : {
-                ...c,
-                perks: c.perks.map((up) =>
-                  up.id !== rp.userPerk.id ? up : { ...up, skipped: true },
-                ),
-              },
+          c.id !== rp.userCard.id ? c : {
+            ...c,
+            perks: c.perks.map((up) =>
+              up.id !== rp.userPerk.id ? up : { ...up, skipped: true, skippedPeriod: periodKey },
+            ),
+          },
         ),
         lastUpdated: new Date().toISOString(),
       });
       setSelectedPerk(null);
     },
-    [state, setState],
+    [state, setState, now],
   );
+
+  const handleUndo = useCallback(() => {
+    if (!undoState) return;
+    if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
+    setState({
+      ...state,
+      cards: state.cards.map((c) =>
+        c.id !== undoState.userCardId ? c : {
+          ...c,
+          perks: c.perks.map((up) =>
+            up.id !== undoState.userPerkId ? up : { ...up, used: false, usedAt: undefined },
+          ),
+        },
+      ),
+      lastUpdated: new Date().toISOString(),
+    });
+    setUndoState(null);
+  }, [undoState, state, setState]);
 
   if (!userCard || !libCard) {
     return (
@@ -116,16 +138,13 @@ export default function CardBenefitsScreen({ route, navigation }: Props) {
     );
   }
 
-  const active = carouselPerks.filter((p) => p.status === 'active');
+  const active    = carouselPerks.filter((p) => p.status === 'active');
   const completed = carouselPerks.filter((p) => p.status === 'completed');
-  const locked = carouselPerks.filter((p) => p.status === 'locked');
+  const locked    = carouselPerks.filter((p) => p.status === 'locked');
 
   return (
     <SafeAreaView style={styles.safe}>
-      <ScrollView
-        contentContainerStyle={styles.content}
-        showsVerticalScrollIndicator={false}
-      >
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         {/* Card graphic + info */}
         <View style={styles.cardHeader}>
           <CreditCardGraphic
@@ -140,51 +159,49 @@ export default function CardBenefitsScreen({ route, navigation }: Props) {
             <Text style={styles.cardInfoFee}>
               {libCard.annualFee === 0 ? 'No annual fee' : `$${libCard.annualFee}/yr`}
             </Text>
-            <View style={styles.progressRow}>
-              <Text style={styles.progressText}>
-                {completed.length}/{active.length + completed.length} done
-              </Text>
-            </View>
+            <Text style={styles.progressText}>
+              {completed.length}/{active.length + completed.length} done
+            </Text>
           </View>
         </View>
 
-        {/* Active perks */}
+        {/* Active */}
         {active.length > 0 && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Available now</Text>
             {active.map((cp) => {
               const rp = resolvedPerks.find((r) => r.userPerk.id === cp.userPerk.id);
-              return (
-                <BenefitListRow
-                  key={cp.userPerk.id}
-                  cp={cp}
-                  onPress={rp ? () => setSelectedPerk(rp) : undefined}
-                />
-              );
+              return <BenefitListRow key={cp.userPerk.id} cp={cp} onPress={rp ? () => setSelectedPerk(rp) : undefined} />;
             })}
           </View>
         )}
 
-        {/* Completed perks */}
+        {/* Completed */}
         {completed.length > 0 && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Used this period</Text>
-            {completed.map((cp) => (
-              <BenefitListRow key={cp.userPerk.id} cp={cp} />
-            ))}
+            {completed.map((cp) => <BenefitListRow key={cp.userPerk.id} cp={cp} />)}
           </View>
         )}
 
-        {/* Locked (other half) perks */}
+        {/* Locked */}
         {locked.length > 0 && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Other half</Text>
-            {locked.map((cp) => (
-              <BenefitListRow key={cp.userPerk.id} cp={cp} />
-            ))}
+            {locked.map((cp) => <BenefitListRow key={cp.userPerk.id} cp={cp} />)}
           </View>
         )}
       </ScrollView>
+
+      {/* Undo toast */}
+      {undoState && (
+        <View style={styles.toast}>
+          <Text style={styles.toastText} numberOfLines={1}>"{undoState.perkName}" marked as used</Text>
+          <TouchableOpacity onPress={handleUndo}>
+            <Text style={styles.toastUndo}>Undo</Text>
+          </TouchableOpacity>
+        </View>
+      )}
 
       {selectedPerk && (
         <BenefitDetailSheet
@@ -198,26 +215,15 @@ export default function CardBenefitsScreen({ route, navigation }: Props) {
   );
 }
 
-// ─── Benefit list row ─────────────────────────────────────────────────────────
-
-function BenefitListRow({
-  cp,
-  onPress,
-}: {
-  cp: CarouselPerk;
-  onPress?: () => void;
-}) {
+function BenefitListRow({ cp, onPress }: { cp: CarouselPerk; onPress?: () => void }) {
   const { perk, status, daysRemaining } = cp;
-  const isLocked = status === 'locked';
+  const isLocked    = status === 'locked';
   const isCompleted = status === 'completed';
   const dayColor = daysRemaining != null ? urgencyColor(daysRemaining) : Colors.textMuted;
 
   return (
     <TouchableOpacity
-      style={[
-        styles.benefitRow,
-        (isLocked || isCompleted) && styles.benefitRowDim,
-      ]}
+      style={[styles.benefitRow, (isLocked || isCompleted) && styles.benefitRowDim]}
       onPress={onPress}
       activeOpacity={onPress ? 0.72 : 1}
     >
@@ -225,36 +231,29 @@ function BenefitListRow({
         <Text style={styles.benefitName} numberOfLines={1}>{perk.name}</Text>
         <Text style={styles.benefitFreq}>{FREQ_LABEL[perk.frequency]}</Text>
       </View>
-
       <View style={styles.benefitRight}>
         {perk.amount > 0 && (
           <Text style={[styles.benefitAmount, (isLocked || isCompleted) && styles.benefitAmountDim]}>
             ${perk.amount}
           </Text>
         )}
-
         {isCompleted && (
           <View style={styles.completedBadge}>
             <Ionicons name="checkmark-circle" size={14} color={Colors.success} />
             <Text style={styles.completedBadgeText}>Used</Text>
           </View>
         )}
-
         {isLocked && (
           <View style={styles.lockedBadge}>
             <Ionicons name="lock-closed-outline" size={12} color={Colors.textMuted} />
-            <Text style={styles.lockedBadgeText}>
-              {perk.isH1 ? 'H1' : 'H2'}
-            </Text>
+            <Text style={styles.lockedBadgeText}>{perk.isH1 ? 'H1' : 'H2'}</Text>
           </View>
         )}
-
         {!isCompleted && !isLocked && daysRemaining != null && (
           <View style={[styles.dayBadge, { backgroundColor: dayColor }]}>
             <Text style={styles.dayBadgeText}>{formatDaysRemaining(daysRemaining)}</Text>
           </View>
         )}
-
         {!isCompleted && !isLocked && onPress && (
           <Ionicons name="chevron-forward" size={16} color={Colors.textMuted} />
         )}
@@ -263,149 +262,61 @@ function BenefitListRow({
   );
 }
 
-// ─── Styles ───────────────────────────────────────────────────────────────────
-
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: Colors.background },
-  content: { paddingBottom: 48 },
+  content: { paddingBottom: 80 },
+  errorBox: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  errorText: { fontFamily: Font.regular, fontSize: 15, color: Colors.textMuted },
 
-  errorBox: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  errorText: {
-    fontFamily: Font.regular,
-    fontSize: 15,
-    color: Colors.textMuted,
-  },
-
-  // Card header
   cardHeader: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    padding: Spacing.lg,
-    gap: Spacing.lg,
-    backgroundColor: Colors.surface,
-    marginBottom: Spacing.md,
+    flexDirection: 'row', alignItems: 'flex-start', padding: Spacing.lg, gap: Spacing.lg,
+    backgroundColor: Colors.surface, marginBottom: Spacing.md,
   },
-  cardInfo: {
-    flex: 1,
-    paddingTop: Spacing.xs,
-  },
-  cardInfoName: {
-    fontFamily: Font.bold,
-    fontSize: 17,
-    color: Colors.textPrimary,
-    marginBottom: 3,
-    lineHeight: 22,
-  },
-  cardInfoIssuer: {
-    fontFamily: Font.regular,
-    fontSize: 13,
-    color: Colors.textMuted,
-    marginBottom: Spacing.xs,
-  },
-  cardInfoFee: {
-    fontFamily: Font.medium,
-    fontSize: 13,
-    color: Colors.textSecondary,
-    marginBottom: Spacing.sm,
-  },
-  progressRow: {},
-  progressText: {
-    fontFamily: Font.semiBold,
-    fontSize: 13,
-    color: Colors.action,
-  },
+  cardInfo: { flex: 1, paddingTop: Spacing.xs },
+  cardInfoName: { fontFamily: Font.bold, fontSize: 17, color: Colors.textPrimary, marginBottom: 3, lineHeight: 22 },
+  cardInfoIssuer: { fontFamily: Font.regular, fontSize: 13, color: Colors.textMuted, marginBottom: Spacing.xs },
+  cardInfoFee: { fontFamily: Font.medium, fontSize: 13, color: Colors.textSecondary, marginBottom: Spacing.sm },
+  progressText: { fontFamily: Font.semiBold, fontSize: 13, color: Colors.action },
 
-  // Sections
-  section: {
-    marginBottom: Spacing.md,
-  },
+  section: { marginBottom: Spacing.md },
   sectionTitle: {
-    fontFamily: Font.semiBold,
-    fontSize: 12,
-    color: Colors.textMuted,
-    textTransform: 'uppercase',
-    letterSpacing: 0.7,
-    marginHorizontal: Spacing.lg,
-    marginBottom: Spacing.sm,
+    fontFamily: Font.semiBold, fontSize: 12, color: Colors.textMuted,
+    textTransform: 'uppercase', letterSpacing: 0.7,
+    marginHorizontal: Spacing.lg, marginBottom: Spacing.sm,
   },
-
-  // Benefit rows
   benefitRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Colors.surface,
-    paddingVertical: Spacing.md,
-    paddingHorizontal: Spacing.lg,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: Colors.surface, paddingVertical: Spacing.md, paddingHorizontal: Spacing.lg,
+    borderBottomWidth: 1, borderBottomColor: Colors.border,
   },
   benefitRowDim: { opacity: 0.55 },
   benefitLeft: { flex: 1, marginRight: Spacing.md },
-  benefitName: {
-    fontFamily: Font.semiBold,
-    fontSize: 15,
-    color: Colors.textPrimary,
-    marginBottom: 2,
-  },
-  benefitFreq: {
-    fontFamily: Font.regular,
-    fontSize: 12,
-    color: Colors.textMuted,
-  },
-  benefitRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-  },
-  benefitAmount: {
-    fontFamily: Font.bold,
-    fontSize: 16,
-    color: Colors.action,
-  },
+  benefitName: { fontFamily: Font.semiBold, fontSize: 15, color: Colors.textPrimary, marginBottom: 2 },
+  benefitFreq: { fontFamily: Font.regular, fontSize: 12, color: Colors.textMuted },
+  benefitRight: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
+  benefitAmount: { fontFamily: Font.bold, fontSize: 16, color: Colors.action },
   benefitAmountDim: { color: Colors.textMuted },
-
   completedBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 3,
-    backgroundColor: '#F0FDF4',
-    borderRadius: Radius.pill,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
+    flexDirection: 'row', alignItems: 'center', gap: 3,
+    backgroundColor: '#F0FDF4', borderRadius: Radius.pill, paddingHorizontal: 8, paddingVertical: 3,
   },
-  completedBadgeText: {
-    fontFamily: Font.semiBold,
-    fontSize: 12,
-    color: Colors.success,
-  },
-
+  completedBadgeText: { fontFamily: Font.semiBold, fontSize: 12, color: Colors.success },
   lockedBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 3,
-    backgroundColor: Colors.border,
-    borderRadius: Radius.pill,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
+    flexDirection: 'row', alignItems: 'center', gap: 3,
+    backgroundColor: Colors.border, borderRadius: Radius.pill, paddingHorizontal: 8, paddingVertical: 3,
   },
-  lockedBadgeText: {
-    fontFamily: Font.semiBold,
-    fontSize: 12,
-    color: Colors.textMuted,
-  },
+  lockedBadgeText: { fontFamily: Font.semiBold, fontSize: 12, color: Colors.textMuted },
+  dayBadge: { borderRadius: Radius.pill, paddingHorizontal: 8, paddingVertical: 3 },
+  dayBadgeText: { fontFamily: Font.bold, fontSize: 11, color: '#fff' },
 
-  dayBadge: {
-    borderRadius: Radius.pill,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
+  toast: {
+    position: 'absolute', bottom: Spacing.xxxl, left: Spacing.lg, right: Spacing.lg,
+    backgroundColor: '#0F172A', borderRadius: Radius.row,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3, shadowRadius: 8, elevation: 8,
   },
-  dayBadgeText: {
-    fontFamily: Font.bold,
-    fontSize: 11,
-    color: '#fff',
-  },
+  toastText: { fontFamily: Font.regular, fontSize: 14, color: '#fff', flex: 1, marginRight: Spacing.md },
+  toastUndo: { fontFamily: Font.semiBold, fontSize: 14, color: '#60A5FA' },
 });

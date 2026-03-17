@@ -1,4 +1,4 @@
-import type { Perk, Card, UserCard, UserPerk } from '../types';
+import type { Perk, Card, UserCard, UserPerk, AppState } from '../types';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -35,7 +35,6 @@ export function isInH1(now: Date): boolean {
   return now.getMonth() < 6;
 }
 
-/** True if this perk applies in the current calendar half. */
 export function isPerkCurrentHalf(perk: Perk, now: Date): boolean {
   if (perk.isH1) return isInH1(now);
   if (perk.isH2) return !isInH1(now);
@@ -46,38 +45,29 @@ export function isPerkCurrentHalf(perk: Perk, now: Date): boolean {
 
 export function getPerkExpiryDate(perk: Perk, userCard: UserCard, now: Date): Date {
   const year = now.getFullYear();
-  const month = now.getMonth(); // 0-indexed
+  const month = now.getMonth();
 
   switch (perk.frequency) {
     case 'monthly':
-      // Last day of current month
       return new Date(year, month + 1, 0);
-
     case 'quarterly': {
-      // End of current quarter: Q1=Mar31, Q2=Jun30, Q3=Sep30, Q4=Dec31
       const qEnd = Math.floor(month / 3) * 3 + 2;
       return new Date(year, qEnd + 1, 0);
     }
-
     case 'semi-annual':
-      // H2 perk or plain semi-annual in H2 → Dec 31; otherwise → Jun 30
       if (perk.isH2 || (!perk.isH1 && month >= 6)) {
         return new Date(year, 11, 31);
       }
       return new Date(year, 5, 30);
-
     case 'annual': {
       if (userCard.anniversaryMonth != null) {
-        // anniversaryMonth is 1-indexed (the month the card renews)
         const a = userCard.anniversaryMonth;
         const curMonth1 = month + 1;
-        // Expiry = last day before the next anniversary month
         const nextYear = curMonth1 < a ? year : year + 1;
         return new Date(nextYear, a - 1, 0);
       }
       return new Date(year, 11, 31);
     }
-
     default:
       return new Date(year, 11, 31);
   }
@@ -85,11 +75,7 @@ export function getPerkExpiryDate(perk: Perk, userCard: UserCard, now: Date): Da
 
 export function getDaysRemaining(expiryDate: Date, now: Date): number {
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const expiry = new Date(
-    expiryDate.getFullYear(),
-    expiryDate.getMonth(),
-    expiryDate.getDate(),
-  );
+  const expiry = new Date(expiryDate.getFullYear(), expiryDate.getMonth(), expiryDate.getDate());
   return Math.round((expiry.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
 }
 
@@ -101,43 +87,28 @@ export function resolveAllPerks(
   now: Date,
 ): ResolvedPerk[] {
   const result: ResolvedPerk[] = [];
-
   for (const userCard of userCards) {
     const libCard = cardLibraryData.find((c) => c.id === userCard.cardLibraryId);
     if (!libCard) continue;
-
     for (const perk of libCard.perks) {
       const userPerk = userCard.perks.find((up) => up.perkId === perk.id);
       if (!userPerk) continue;
       if (userPerk.used || userPerk.skipped) continue;
       if (!isPerkCurrentHalf(perk, now)) continue;
-
       const expiryDate = getPerkExpiryDate(perk, userCard, now);
       const daysRemaining = getDaysRemaining(expiryDate, now);
       result.push({ userCard, libCard, perk, userPerk, expiryDate, daysRemaining });
     }
   }
-
   return result;
 }
 
-/**
- * Returns all perks for a card with statuses: active, completed, locked.
- * Used for Layer 3 per-card carousels.
- */
-export function getCarouselPerks(
-  userCard: UserCard,
-  libCard: Card,
-  now: Date,
-): CarouselPerk[] {
+export function getCarouselPerks(userCard: UserCard, libCard: Card, now: Date): CarouselPerk[] {
   const result: CarouselPerk[] = [];
-
   for (const perk of libCard.perks) {
     const userPerk = userCard.perks.find((up) => up.perkId === perk.id);
     if (!userPerk) continue;
-
     const inCurrentHalf = isPerkCurrentHalf(perk, now);
-
     if (!inCurrentHalf) {
       result.push({ perk, userPerk, status: 'locked', expiryDate: null, daysRemaining: null });
     } else if (userPerk.used || userPerk.skipped) {
@@ -149,8 +120,6 @@ export function getCarouselPerks(
       result.push({ perk, userPerk, status: 'active', expiryDate, daysRemaining });
     }
   }
-
-  // Sort: active (most urgent first) → completed → locked
   result.sort((a, b) => {
     const order: Record<CarouselPerk['status'], number> = { active: 0, completed: 1, locked: 2 };
     if (a.status !== b.status) return order[a.status] - order[b.status];
@@ -159,7 +128,6 @@ export function getCarouselPerks(
     }
     return 0;
   });
-
   return result;
 }
 
@@ -177,38 +145,19 @@ export function calculateGrade(resolvedPerks: ResolvedPerk[]): Grade {
 export function getGradeInfo(grade: Grade): GradeInfo {
   switch (grade) {
     case 'A':
-      return {
-        grade, color: '#15803D', bg: '#F0FDF4',
-        label: 'All clear',
-        message: "You're on top of everything. No urgent perks.",
-      };
+      return { grade, color: '#059669', bg: '#F0FDF4', label: 'All clear', message: "You're on top of everything. No urgent perks." };
     case 'B':
-      return {
-        grade, color: '#1D4ED8', bg: '#EFF6FF',
-        label: 'Heads up',
-        message: 'A few perks expire in the next 2 weeks.',
-      };
+      return { grade, color: '#6EBF8B', bg: '#F2FAF6', label: 'Heads up', message: 'A few perks expire in the next 2 weeks.' };
     case 'C':
-      return {
-        grade, color: '#D97706', bg: '#FFFBEB',
-        label: 'Act soon',
-        message: 'Some perks expire this week — use them fast.',
-      };
+      return { grade, color: '#D97706', bg: '#FFFBEB', label: 'Act soon', message: 'Some perks expire this week — use them fast.' };
     case 'D':
-      return {
-        grade, color: '#DC2626', bg: '#FEF2F2',
-        label: 'Urgent',
-        message: 'Critical: perks expiring in 3 days or already gone.',
-      };
+      return { grade, color: '#DC2626', bg: '#FEF2F2', label: 'Urgent', message: 'Critical: perks expiring in 3 days or already gone.' };
   }
 }
 
 // ─── Sort cards by urgency ────────────────────────────────────────────────────
 
-export function sortCardsByUrgency(
-  userCards: UserCard[],
-  resolvedPerks: ResolvedPerk[],
-): UserCard[] {
+export function sortCardsByUrgency(userCards: UserCard[], resolvedPerks: ResolvedPerk[]): UserCard[] {
   return [...userCards].sort((a, b) => {
     const aPerks = resolvedPerks.filter((p) => p.userCard.id === a.id);
     const bPerks = resolvedPerks.filter((p) => p.userCard.id === b.id);
@@ -228,8 +177,60 @@ export function formatDaysRemaining(days: number): string {
 }
 
 export function urgencyColor(days: number): string {
-  if (days <= 3) return '#DC2626';   // red
-  if (days <= 7) return '#D97706';   // amber
-  if (days <= 15) return '#1D4ED8';  // blue
-  return '#94A3B8';                  // muted
+  if (days <= 3) return '#DC2626';
+  if (days <= 7) return '#D97706';
+  if (days <= 15) return '#1D4ED8';
+  return '#94A3B8';
+}
+
+// ─── Category icons ───────────────────────────────────────────────────────────
+
+export function getPerkIcon(perkName: string): string {
+  const n = perkName.toLowerCase();
+  if (/doordash|dining|restaurant|uber eats|dunkin|grubhub|resy|cheesecake/.test(n)) return 'restaurant-outline';
+  if (/airline|travel|hotel|clear|global entry|tsa|lounge|united|hilton|marriott|delta/.test(n)) return 'airplane-outline';
+  if (/saks|walmart|lululemon|dell/.test(n)) return 'bag-outline';
+  if (/digital entertainment|disney|hulu|peacock|apple tv|peloton/.test(n)) return 'play-circle-outline';
+  if (/lyft|uber cash|uber one/.test(n)) return 'car-outline';
+  if (/instacart/.test(n)) return 'cart-outline';
+  if (/wireless|cell phone/.test(n)) return 'phone-portrait-outline';
+  return 'star-outline';
+}
+
+// ─── Period key (for skipped-perk reset) ──────────────────────────────────────
+
+export function getCurrentPeriodKey(perk: Perk, now: Date): string {
+  const year = now.getFullYear();
+  const month = now.getMonth() + 1;
+  switch (perk.frequency) {
+    case 'monthly':    return `${year}-${String(month).padStart(2, '0')}`;
+    case 'quarterly':  return `${year}-Q${Math.ceil(month / 3)}`;
+    case 'semi-annual':return `${year}-${month <= 6 ? 'H1' : 'H2'}`;
+    case 'annual':     return `${year}`;
+    default:           return `${year}`;
+  }
+}
+
+export function resetSkippedPerks(state: AppState, cardLibraryData: Card[], now: Date): AppState {
+  const cards = state.cards.map((userCard) => {
+    const libCard = cardLibraryData.find((c) => c.id === userCard.cardLibraryId);
+    if (!libCard) return userCard;
+
+    let cardChanged = false;
+    const perks = userCard.perks.map((userPerk) => {
+      if (!userPerk.skipped || !userPerk.skippedPeriod) return userPerk;
+      const perk = libCard.perks.find((p) => p.id === userPerk.perkId);
+      if (!perk) return userPerk;
+      const current = getCurrentPeriodKey(perk, now);
+      if (current !== userPerk.skippedPeriod) {
+        cardChanged = true;
+        return { ...userPerk, skipped: false, skippedPeriod: undefined };
+      }
+      return userPerk;
+    });
+    return cardChanged ? { ...userCard, perks } : userCard;
+  });
+
+  const changed = cards.some((c, i) => c !== state.cards[i]);
+  return changed ? { ...state, cards } : state;
 }
