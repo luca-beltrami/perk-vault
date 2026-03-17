@@ -246,11 +246,18 @@ export const cardLibrary: Card[] = [
         description: 'Must be enrolled in DashPass & use CSR at checkout. Activate by 12/31/27. Forfeited if unused.',
       },
       {
-        id: 'csr-doordash-non-restaurant',
-        name: 'DoorDash Non-Restaurant Promo',
-        amount: 20,
+        id: 'csr-doordash-nr-1',
+        name: 'DoorDash Non-Restaurant Credit 1',
+        amount: 10,
         frequency: 'monthly',
-        description: 'Two $10 promos for groceries/retail orders. Separate transactions. Activate by 12/31/27.',
+        description: 'Must be enrolled in DashPass. Use CSR at checkout. Two separate $10 credits per month — each requires a separate order. Activate by 12/31/27.',
+      },
+      {
+        id: 'csr-doordash-nr-2',
+        name: 'DoorDash Non-Restaurant Credit 2',
+        amount: 10,
+        frequency: 'monthly',
+        description: 'Must be enrolled in DashPass. Use CSR at checkout. Two separate $10 credits per month — each requires a separate order. Activate by 12/31/27.',
       },
       {
         id: 'csr-lyft',
@@ -353,11 +360,18 @@ export const cardLibrary: Card[] = [
         description: 'Must be enrolled in DashPass & use card at checkout. Activate by 12/31/27.',
       },
       {
-        id: 'csrb-doordash-non-restaurant',
-        name: 'DoorDash Non-Restaurant Promo',
-        amount: 20,
+        id: 'csrb-doordash-nr-1',
+        name: 'DoorDash Non-Restaurant Credit 1',
+        amount: 10,
         frequency: 'monthly',
-        description: 'Two $10 promos for groceries/retail. Separate transactions. Activate by 12/31/27.',
+        description: 'Must be enrolled in DashPass. Use CSRB at checkout. Two separate $10 credits per month — each requires a separate order. Activate by 12/31/27.',
+      },
+      {
+        id: 'csrb-doordash-nr-2',
+        name: 'DoorDash Non-Restaurant Credit 2',
+        amount: 10,
+        frequency: 'monthly',
+        description: 'Must be enrolled in DashPass. Use CSRB at checkout. Two separate $10 credits per month — each requires a separate order. Activate by 12/31/27.',
       },
       {
         id: 'csrb-lyft',
@@ -430,11 +444,18 @@ export const cardLibrary: Card[] = [
     color: '#2E5299',
     perks: [
       {
-        id: 'csp-doordash-non-restaurant',
-        name: 'DoorDash Non-Restaurant Promo',
+        id: 'csp-doordash-nr-1',
+        name: 'DoorDash Non-Restaurant Credit 1',
         amount: 10,
         frequency: 'monthly',
-        description: '$10/mo off non-restaurant DoorDash orders. Activate by 12/31/27.',
+        description: 'Must be enrolled in DashPass. Use CSP at checkout. Two separate $10 credits per month — each requires a separate order. Activate by 12/31/27.',
+      },
+      {
+        id: 'csp-doordash-nr-2',
+        name: 'DoorDash Non-Restaurant Credit 2',
+        amount: 10,
+        frequency: 'monthly',
+        description: 'Must be enrolled in DashPass. Use CSP at checkout. Two separate $10 credits per month — each requires a separate order. Activate by 12/31/27.',
       },
       {
         id: 'csp-hotel',
@@ -454,11 +475,18 @@ export const cardLibrary: Card[] = [
     color: '#0072CE',
     perks: [
       {
-        id: 'cfu-doordash-non-restaurant',
-        name: 'DoorDash Non-Restaurant Promo',
+        id: 'cfu-doordash-nr-1',
+        name: 'DoorDash Non-Restaurant Credit 1',
         amount: 10,
         frequency: 'monthly',
-        description: '$10/mo off non-restaurant DoorDash orders with DashPass. Activate by 12/31/27.',
+        description: 'Must be enrolled in DashPass. Use CFU at checkout. Two separate $10 credits per month — each requires a separate order. Activate by 12/31/27.',
+      },
+      {
+        id: 'cfu-doordash-nr-2',
+        name: 'DoorDash Non-Restaurant Credit 2',
+        amount: 10,
+        frequency: 'monthly',
+        description: 'Must be enrolled in DashPass. Use CFU at checkout. Two separate $10 credits per month — each requires a separate order. Activate by 12/31/27.',
       },
       {
         id: 'cfu-lyft',
@@ -478,11 +506,18 @@ export const cardLibrary: Card[] = [
     color: '#00A9E0',
     perks: [
       {
-        id: 'cff-doordash-non-restaurant',
-        name: 'DoorDash Non-Restaurant Promo',
+        id: 'cff-doordash-nr-1',
+        name: 'DoorDash Non-Restaurant Credit 1',
         amount: 10,
         frequency: 'monthly',
-        description: '$10/mo off non-restaurant DoorDash orders with DashPass. Activate by 12/31/27.',
+        description: 'Must be enrolled in DashPass. Use CFF at checkout. Two separate $10 credits per month — each requires a separate order. Activate by 12/31/27.',
+      },
+      {
+        id: 'cff-doordash-nr-2',
+        name: 'DoorDash Non-Restaurant Credit 2',
+        amount: 10,
+        frequency: 'monthly',
+        description: 'Must be enrolled in DashPass. Use CFF at checkout. Two separate $10 credits per month — each requires a separate order. Activate by 12/31/27.',
       },
       {
         id: 'cff-lyft',
@@ -758,6 +793,30 @@ export const cardLibrary: Card[] = [
         amount: 120,
         frequency: 'annual',
         description: 'Statement credit every 4 years.',
+      },
+    ],
+  },
+  {
+    id: 'wells-fargo-premier-autograph',
+    name: 'Wells Fargo Premier Autograph',
+    issuer: 'Wells Fargo',
+    network: 'Visa',
+    annualFee: 95,
+    color: '#CC0000',
+    perks: [
+      {
+        id: 'wf-premier-airline',
+        name: 'Airline Credit',
+        amount: 50,
+        frequency: 'annual',
+        description: 'Annual statement credit with $50 minimum airline purchase. No enrollment required. Applies automatically.',
+      },
+      {
+        id: 'wf-premier-cell-phone',
+        name: 'Cell Phone Protection',
+        amount: 0,
+        frequency: 'annual',
+        description: 'Pay your monthly phone bill with the card to get up to $1,000 protection per claim against damage or theft. $25 deductible. Up to 2 claims per year.',
       },
     ],
   },

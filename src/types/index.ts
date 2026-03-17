@@ -5,7 +5,8 @@ export type Issuer =
   | 'Hilton'
   | 'Marriott'
   | 'Delta'
-  | 'Citi';
+  | 'Citi'
+  | 'Wells Fargo';
 
 export type Network = 'Amex' | 'Visa' | 'Mastercard';
 

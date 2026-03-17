@@ -14,7 +14,7 @@ export default function TabNavigator() {
       screenOptions={({ route }) => ({
         tabBarIcon: ({ focused, color, size }) => {
           const icons: Record<string, string> = {
-            Checklist: focused ? 'checkmark-circle' : 'checkmark-circle-outline',
+            Today: focused ? 'sunny' : 'sunny-outline',
             Cards: focused ? 'card' : 'card-outline',
             Challenges: focused ? 'trophy' : 'trophy-outline',
           };
@@ -29,7 +29,7 @@ export default function TabNavigator() {
         headerTitleStyle: { fontFamily: Font.semiBold, color: Colors.textPrimary },
       })}
     >
-      <Tab.Screen name="Checklist" component={ChecklistScreen} />
+      <Tab.Screen name="Today" component={ChecklistScreen} />
       <Tab.Screen name="Cards" component={CardsStack} options={{ headerShown: false }} />
       <Tab.Screen name="Challenges" component={ChallengesScreen} />
     </Tab.Navigator>
