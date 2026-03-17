@@ -30,7 +30,7 @@ export default function CreditCardGraphic({ cardId, cardName, network, width }: 
   const chipInnerW  = Math.round(chipW * 0.60);
   const chipInnerH  = Math.round(chipH * 0.59);
   const shimmerTop  = Math.round(height * 0.44);
-  const nameFontSize    = Math.round(width * 0.12);
+  const nameFontSize    = Math.round(width * 0.09);
   const networkFontSize = Math.round(width * 0.08);
 
   return (
@@ -74,7 +74,8 @@ export default function CreditCardGraphic({ cardId, cardName, network, width }: 
               textShadowOffset: { width: 0, height: 1 },
               textShadowRadius: 2,
             }}
-            numberOfLines={2}
+            numberOfLines={1}
+            ellipsizeMode="tail"
           >
             {cardName}
           </Text>
