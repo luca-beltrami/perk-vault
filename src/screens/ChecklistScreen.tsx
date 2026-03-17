@@ -23,7 +23,7 @@ import {
   getPerkIcon,
   getCurrentPeriodKey,
 } from '../utils/perkUtils';
-import { challengeUrgencyColor, getDaysToDeadline } from './ChallengesScreen';
+import { challengeUrgencyColor, getDaysToDeadline } from '../utils/challengeUtils';
 import type { ResolvedPerk } from '../utils/perkUtils';
 import type { BonusChallenge } from '../types';
 

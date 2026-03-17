@@ -134,7 +134,7 @@ export default function CardLibraryScreen({ navigation }: Props) {
   const vaultCards = useMemo<VaultCardOption[]>(
     () => state.cards.map((uc) => {
       const lib = cardLibrary.find((lc) => lc.id === uc.cardLibraryId);
-      return { id: uc.id, name: uc.name || lib?.name || '', issuer: lib?.issuer ?? '' };
+      return { id: uc.id, name: uc.name || lib?.name || '', issuer: lib?.issuer ?? '', color: lib?.color };
     }).filter((vc) => vc.name),
     [state.cards],
   );

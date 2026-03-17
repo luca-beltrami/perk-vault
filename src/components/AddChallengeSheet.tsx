@@ -22,6 +22,7 @@ export interface VaultCardOption {
   id: string;
   name: string;
   issuer: string;
+  color?: string;
 }
 
 interface Props {
@@ -69,6 +70,7 @@ export default function AddChallengeSheet({
   const [currentSpend, setCurrentSpend] = useState('0');
   const [deadline, setDeadline] = useState<Date>(defaultDeadline);
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showCardPicker, setShowCardPicker] = useState(false);
   const [bonusValue, setBonusValue] = useState('');
   const [note, setNote] = useState('');
   const [errors, setErrors] = useState<FormErrors>({});
@@ -85,6 +87,7 @@ export default function AddChallengeSheet({
       setCurrentSpend('0');
       setDeadline(defaultDeadline());
       setShowDatePicker(false);
+      setShowCardPicker(false);
       setBonusValue('');
       setNote('');
       setErrors({});
@@ -176,30 +179,77 @@ export default function AddChallengeSheet({
             <View style={styles.fieldGroup}>
               <Text style={styles.fieldLabel}>Card</Text>
               {hasVaultCards ? (
-                <View style={styles.cardPicker}>
-                  {vaultCards.map((vc) => {
-                    const selected = vc.id === selectedCardId;
-                    return (
-                      <TouchableOpacity
-                        key={vc.id}
-                        style={[styles.cardOption, selected && styles.cardOptionSelected]}
-                        onPress={() => { setSelectedCardId(vc.id); setErrors((e) => ({ ...e, card: undefined })); }}
-                        activeOpacity={0.75}
-                      >
-                        <View style={styles.cardOptionLeft}>
-                          <Text style={[styles.cardOptionName, selected && styles.cardOptionNameSelected]}
-                            numberOfLines={1}>
-                            {vc.name}
-                          </Text>
-                          <Text style={[styles.cardOptionIssuer, selected && styles.cardOptionIssuerSelected]}>
-                            {vc.issuer}
-                          </Text>
+                <>
+                  <TouchableOpacity
+                    style={[styles.pickerButton, errors.card ? styles.inputError : null]}
+                    onPress={() => setShowCardPicker(true)}
+                    activeOpacity={0.75}
+                  >
+                    {selectedCard ? (
+                      <View style={styles.pickerButtonContent}>
+                        <View style={[styles.colorDot, { backgroundColor: selectedCard.color ?? '#888' }]} />
+                        <View style={styles.pickerButtonTextBlock}>
+                          <Text style={styles.pickerSelectedName} numberOfLines={1}>{selectedCard.name}</Text>
+                          <Text style={styles.pickerSelectedIssuer}>{selectedCard.issuer}</Text>
                         </View>
-                        {selected && <Ionicons name="checkmark-circle" size={20} color="#fff" />}
-                      </TouchableOpacity>
-                    );
-                  })}
-                </View>
+                      </View>
+                    ) : (
+                      <Text style={styles.pickerPlaceholder}>Select a card…</Text>
+                    )}
+                    <Ionicons name="chevron-down" size={16} color={Colors.textMuted} />
+                  </TouchableOpacity>
+
+                  <Modal
+                    visible={showCardPicker}
+                    transparent
+                    animationType="slide"
+                    onRequestClose={() => setShowCardPicker(false)}
+                  >
+                    <View style={styles.pickerOverlay}>
+                      <TouchableOpacity
+                        style={styles.pickerBackdrop}
+                        onPress={() => setShowCardPicker(false)}
+                        activeOpacity={1}
+                      />
+                      <View style={styles.pickerSheet}>
+                        <View style={styles.pickerHandle} />
+                        <View style={styles.pickerSheetHeader}>
+                          <Text style={styles.pickerSheetTitle}>Select a Card</Text>
+                          <TouchableOpacity onPress={() => setShowCardPicker(false)}>
+                            <Text style={styles.pickerSheetDone}>Done</Text>
+                          </TouchableOpacity>
+                        </View>
+                        <ScrollView style={styles.pickerList} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+                          {vaultCards.map((vc) => {
+                            const selected = vc.id === selectedCardId;
+                            return (
+                              <TouchableOpacity
+                                key={vc.id}
+                                style={[styles.pickerRow, selected && styles.pickerRowSelected]}
+                                onPress={() => {
+                                  setSelectedCardId(vc.id);
+                                  setErrors((e) => ({ ...e, card: undefined }));
+                                  setShowCardPicker(false);
+                                }}
+                                activeOpacity={0.7}
+                              >
+                                <View style={[styles.colorDot, { backgroundColor: vc.color ?? '#888' }]} />
+                                <View style={styles.pickerRowTextBlock}>
+                                  <Text style={[styles.pickerRowName, selected && styles.pickerRowNameSelected]} numberOfLines={1}>
+                                    {vc.name}
+                                  </Text>
+                                  <Text style={styles.pickerRowIssuer}>{vc.issuer}</Text>
+                                </View>
+                                {selected && <Ionicons name="checkmark" size={18} color={Colors.action} />}
+                              </TouchableOpacity>
+                            );
+                          })}
+                          <View style={styles.pickerListBottom} />
+                        </ScrollView>
+                      </View>
+                    </View>
+                  </Modal>
+                </>
               ) : (
                 <TextInput
                   style={[styles.textInput, errors.card ? styles.inputError : null]}
@@ -350,20 +400,51 @@ const styles = StyleSheet.create({
   content: { padding: Spacing.lg },
   bottomPad: { height: 32 },
 
-  // Card picker
-  cardPicker: { gap: Spacing.sm },
-  cardOption: {
+  // Card picker button
+  pickerButton: {
     flexDirection: 'row', alignItems: 'center',
-    borderWidth: 1.5, borderColor: Colors.border, borderRadius: Radius.row,
-    paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md,
-    backgroundColor: Colors.surface,
+    backgroundColor: Colors.surface, borderWidth: 1, borderColor: Colors.border,
+    borderRadius: Radius.input, paddingHorizontal: Spacing.md, paddingVertical: Spacing.md,
+    minHeight: 48,
   },
-  cardOptionSelected: { backgroundColor: Colors.action, borderColor: Colors.action },
-  cardOptionLeft: { flex: 1 },
-  cardOptionName: { fontFamily: Font.semiBold, fontSize: 15, color: Colors.textPrimary },
-  cardOptionNameSelected: { color: '#fff' },
-  cardOptionIssuer: { fontFamily: Font.regular, fontSize: 12, color: Colors.textMuted, marginTop: 2 },
-  cardOptionIssuerSelected: { color: 'rgba(255,255,255,0.75)' },
+  pickerButtonContent: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
+  pickerPlaceholder: { flex: 1, fontFamily: Font.regular, fontSize: 15, color: Colors.textMuted },
+  pickerButtonTextBlock: { flex: 1 },
+  pickerSelectedName: { fontFamily: Font.semiBold, fontSize: 15, color: Colors.textPrimary },
+  pickerSelectedIssuer: { fontFamily: Font.regular, fontSize: 12, color: Colors.textMuted, marginTop: 1 },
+  colorDot: { width: 12, height: 12, borderRadius: 6, flexShrink: 0 },
+
+  // Card picker modal
+  pickerOverlay: { flex: 1, justifyContent: 'flex-end' },
+  pickerBackdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.4)' },
+  pickerSheet: {
+    backgroundColor: Colors.surface, borderTopLeftRadius: 20, borderTopRightRadius: 20,
+    maxHeight: '70%', shadowColor: '#000', shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.12, shadowRadius: 16, elevation: 20,
+  },
+  pickerHandle: {
+    width: 36, height: 4, borderRadius: 2, backgroundColor: Colors.border,
+    alignSelf: 'center', marginTop: Spacing.sm, marginBottom: Spacing.xs,
+  },
+  pickerSheetHeader: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md,
+    borderBottomWidth: 1, borderBottomColor: Colors.border,
+  },
+  pickerSheetTitle: { fontFamily: Font.semiBold, fontSize: 16, color: Colors.textPrimary },
+  pickerSheetDone: { fontFamily: Font.semiBold, fontSize: 16, color: Colors.action },
+  pickerList: { flexGrow: 0 },
+  pickerListBottom: { height: 32 },
+  pickerRow: {
+    flexDirection: 'row', alignItems: 'center', gap: Spacing.md,
+    paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md,
+    borderBottomWidth: 1, borderBottomColor: Colors.border,
+  },
+  pickerRowSelected: { backgroundColor: Colors.action + '0D' },
+  pickerRowTextBlock: { flex: 1 },
+  pickerRowName: { fontFamily: Font.semiBold, fontSize: 15, color: Colors.textPrimary },
+  pickerRowNameSelected: { color: Colors.action },
+  pickerRowIssuer: { fontFamily: Font.regular, fontSize: 12, color: Colors.textMuted, marginTop: 1 },
 
   // Date picker
   dateButton: {

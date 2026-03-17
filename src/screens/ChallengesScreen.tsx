@@ -20,19 +20,8 @@ import type { BonusChallenge } from '../types';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-export function challengeUrgencyColor(daysLeft: number): string {
-  if (daysLeft > 30) return '#00C9A7';
-  if (daysLeft > 15) return '#D97706';
-  if (daysLeft > 7)  return '#F97316';
-  return '#DC2626';
-}
-
-export function getDaysToDeadline(deadline: string, now: Date): number {
-  const d = new Date(deadline);
-  const today  = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const target = new Date(d.getFullYear(), d.getMonth(), d.getDate());
-  return Math.round((target.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-}
+export { challengeUrgencyColor, getDaysToDeadline } from '../utils/challengeUtils';
+import { challengeUrgencyColor, getDaysToDeadline } from '../utils/challengeUtils';
 
 function formatDeadline(deadline: string): string {
   return new Date(deadline).toLocaleDateString('en-US', {
@@ -122,7 +111,7 @@ export default function ChallengesScreen() {
   const vaultCards = useMemo<VaultCardOption[]>(
     () => state.cards.map((uc) => {
       const lib = cardLibrary.find((lc) => lc.id === uc.cardLibraryId);
-      return { id: uc.id, name: uc.name || lib?.name || '', issuer: lib?.issuer ?? '' };
+      return { id: uc.id, name: uc.name || lib?.name || '', issuer: lib?.issuer ?? '', color: lib?.color };
     }).filter((vc) => vc.name),
     [state.cards],
   );
