@@ -12,6 +12,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { Colors, Font, Radius, Spacing } from '../components/theme';
 import { CardsStackParamList } from '../navigation/CardsStack';
 import { useAppState } from '../hooks/useAppState';
+import { cardLibrary } from '../data/cardLibrary';
+import CreditCardGraphic from '../components/CreditCardGraphic';
 
 type Props = NativeStackScreenProps<CardsStackParamList, 'MyCards'>;
 
@@ -50,12 +52,24 @@ export default function MyCardsScreen({ navigation }: Props) {
                 <Text style={styles.addCardRowText}>Add another card</Text>
               </TouchableOpacity>
             }
-            renderItem={({ item }) => (
-              <View style={styles.card}>
-                <Text style={styles.cardName}>{item.name}</Text>
-                <Text style={styles.cardMeta}>{item.perks.length} perks tracked</Text>
-              </View>
-            )}
+            renderItem={({ item }) => {
+              const libCard = cardLibrary.find((c) => c.id === item.cardLibraryId);
+              return (
+                <View style={styles.card}>
+                  {libCard && (
+                    <CreditCardGraphic
+                      cardId={libCard.id}
+                      cardName={libCard.name}
+                      network={libCard.network}
+                    />
+                  )}
+                  <View style={styles.cardDetails}>
+                    <Text style={styles.cardName}>{item.name}</Text>
+                    <Text style={styles.cardMeta}>{item.perks.length} perks tracked</Text>
+                  </View>
+                </View>
+              );
+            }}
           />
         )}
       </View>
@@ -113,9 +127,15 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: Colors.surface,
     borderRadius: Radius.card,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  cardDetails: {
     padding: Spacing.lg,
-    borderWidth: 1,
-    borderColor: Colors.border,
   },
   cardName: {
     fontFamily: Font.semiBold,
