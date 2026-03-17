@@ -80,10 +80,10 @@ export default function ChecklistScreen() {
 
   const hasAnyUrgent = tierToday.length + tierWeek.length + tierMonth.length > 0;
 
-  // Active bonus challenges expiring within 30 days
+  // All active bonus challenges, sorted soonest deadline first
   const urgentChallenges = useMemo(
-    () => state.challenges
-      .filter((c) => !c.completed && getDaysToDeadline(c.deadline, now) <= 30)
+    () => (state.challenges ?? [])
+      .filter((c) => !c.completed)
       .sort((a, b) => new Date(a.deadline).getTime() - new Date(b.deadline).getTime()),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [state.challenges],
@@ -410,6 +410,7 @@ const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: Colors.background },
   scroll: { flex: 1 },
   scrollContent: { paddingBottom: 96 },
+
 
   emptyCenterContainer: {
     flex: 1, alignItems: 'center', justifyContent: 'center',
