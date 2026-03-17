@@ -1,0 +1,131 @@
+import React from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  FlatList,
+  SafeAreaView,
+} from 'react-native';
+import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { Ionicons } from '@expo/vector-icons';
+import { Colors, Font, Radius, Spacing } from '../components/theme';
+import { CardsStackParamList } from '../navigation/CardsStack';
+import { useAppState } from '../hooks/useAppState';
+
+type Props = NativeStackScreenProps<CardsStackParamList, 'MyCards'>;
+
+export default function MyCardsScreen({ navigation }: Props) {
+  const { state } = useAppState();
+  const cards = state.cards;
+
+  return (
+    <SafeAreaView style={styles.safe}>
+      <View style={styles.container}>
+        {cards.length === 0 ? (
+          <View style={styles.empty}>
+            <Ionicons name="card-outline" size={56} color={Colors.textMuted} />
+            <Text style={styles.emptyTitle}>No cards yet</Text>
+            <Text style={styles.emptySubtitle}>
+              Add your cards to start tracking perks and making sure every dollar of your annual fees is working for you.
+            </Text>
+            <TouchableOpacity
+              style={styles.addBtn}
+              onPress={() => navigation.navigate('CardLibrary')}
+            >
+              <Text style={styles.addBtnText}>Add your first card</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <FlatList
+            data={cards}
+            keyExtractor={(item) => item.id}
+            contentContainerStyle={styles.list}
+            ListHeaderComponent={
+              <TouchableOpacity
+                style={styles.addCardRow}
+                onPress={() => navigation.navigate('CardLibrary')}
+              >
+                <Ionicons name="add-circle-outline" size={20} color={Colors.action} />
+                <Text style={styles.addCardRowText}>Add another card</Text>
+              </TouchableOpacity>
+            }
+            renderItem={({ item }) => (
+              <View style={styles.card}>
+                <Text style={styles.cardName}>{item.name}</Text>
+                <Text style={styles.cardMeta}>{item.perks.length} perks tracked</Text>
+              </View>
+            )}
+          />
+        )}
+      </View>
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  safe: { flex: 1, backgroundColor: Colors.background },
+  container: { flex: 1 },
+  empty: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: Spacing.xxxl,
+    gap: Spacing.lg,
+  },
+  emptyTitle: {
+    fontFamily: Font.bold,
+    fontSize: 22,
+    color: Colors.textPrimary,
+    textAlign: 'center',
+  },
+  emptySubtitle: {
+    fontFamily: Font.regular,
+    fontSize: 15,
+    color: Colors.textSecondary,
+    textAlign: 'center',
+    lineHeight: 22,
+  },
+  addBtn: {
+    marginTop: Spacing.sm,
+    backgroundColor: Colors.action,
+    paddingVertical: Spacing.lg,
+    paddingHorizontal: Spacing.xxxl,
+    borderRadius: Radius.pill,
+  },
+  addBtnText: {
+    fontFamily: Font.semiBold,
+    fontSize: 16,
+    color: Colors.surface,
+  },
+  list: { padding: Spacing.lg, gap: Spacing.md },
+  addCardRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    marginBottom: Spacing.md,
+  },
+  addCardRowText: {
+    fontFamily: Font.semiBold,
+    fontSize: 15,
+    color: Colors.action,
+  },
+  card: {
+    backgroundColor: Colors.surface,
+    borderRadius: Radius.card,
+    padding: Spacing.lg,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  cardName: {
+    fontFamily: Font.semiBold,
+    fontSize: 16,
+    color: Colors.textPrimary,
+  },
+  cardMeta: {
+    fontFamily: Font.regular,
+    fontSize: 13,
+    color: Colors.textMuted,
+    marginTop: Spacing.xs,
+  },
+});
