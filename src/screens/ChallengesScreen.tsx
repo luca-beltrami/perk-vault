@@ -7,32 +7,27 @@ import {
   TextInput,
   StyleSheet,
   SafeAreaView,
-  Modal,
   Alert,
-  KeyboardAvoidingView,
-  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { Colors, Font, Radius, Spacing } from '../components/theme';
 import { useAppState } from '../hooks/useAppState';
 import { cardLibrary } from '../data/cardLibrary';
+import AddChallengeSheet from '../components/AddChallengeSheet';
+import type { VaultCardOption } from '../components/AddChallengeSheet';
 import type { BonusChallenge } from '../types';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function generateId(): string {
-  return `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
-}
-
-function challengeUrgencyColor(daysLeft: number): string {
+export function challengeUrgencyColor(daysLeft: number): string {
   if (daysLeft > 30) return '#00C9A7';
   if (daysLeft > 15) return '#D97706';
   if (daysLeft > 7)  return '#F97316';
   return '#DC2626';
 }
 
-function getDaysToDeadline(deadline: string, now: Date): number {
+export function getDaysToDeadline(deadline: string, now: Date): number {
   const d = new Date(deadline);
   const today  = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const target = new Date(d.getFullYear(), d.getMonth(), d.getDate());
@@ -43,16 +38,6 @@ function formatDeadline(deadline: string): string {
   return new Date(deadline).toLocaleDateString('en-US', {
     month: 'short', day: 'numeric', year: 'numeric',
   });
-}
-
-function parseDeadlineInput(str: string): Date | null {
-  const parts = str.split('/');
-  if (parts.length !== 3) return null;
-  const [m, d, y] = parts.map((p) => parseInt(p, 10));
-  if (isNaN(m) || isNaN(d) || isNaN(y)) return null;
-  if (m < 1 || m > 12 || d < 1 || d > 31 || y < 2024) return null;
-  const date = new Date(y, m - 1, d);
-  return isNaN(date.getTime()) ? null : date;
 }
 
 // ─── Screen ───────────────────────────────────────────────────────────────────
@@ -134,11 +119,11 @@ export default function ChallengesScreen() {
     });
   }, [state, setState]);
 
-  const vaultCardNames = useMemo(
+  const vaultCards = useMemo<VaultCardOption[]>(
     () => state.cards.map((uc) => {
       const lib = cardLibrary.find((lc) => lc.id === uc.cardLibraryId);
-      return uc.name || lib?.name || '';
-    }).filter(Boolean),
+      return { id: uc.id, name: uc.name || lib?.name || '', issuer: lib?.issuer ?? '' };
+    }).filter((vc) => vc.name),
     [state.cards],
   );
 
@@ -206,7 +191,7 @@ export default function ChallengesScreen() {
         visible={showAdd}
         onClose={() => setShowAdd(false)}
         onSave={handleAdd}
-        vaultCardNames={vaultCardNames}
+        vaultCards={vaultCards}
       />
     </SafeAreaView>
   );
@@ -214,7 +199,7 @@ export default function ChallengesScreen() {
 
 // ─── Challenge card ───────────────────────────────────────────────────────────
 
-function ChallengeCard({
+export function ChallengeCard({
   challenge, now, onMarkComplete, onUpdateSpend,
 }: {
   challenge: BonusChallenge;
@@ -260,7 +245,6 @@ function ChallengeCard({
       </View>
 
       <View style={styles.cardBody}>
-        {/* Title row */}
         <View style={styles.cardTitleRow}>
           <Text style={styles.cardName} numberOfLines={1}>{challenge.cardName}</Text>
           <View style={[styles.bonusPill, { borderColor: urgency }]}>
@@ -275,24 +259,17 @@ function ChallengeCard({
             Est. value: ${challenge.bonusValue.toLocaleString()}
           </Text>
         )}
-        {!!challenge.note && (
-          <Text style={styles.noteText}>{challenge.note}</Text>
-        )}
+        {!!challenge.note && <Text style={styles.noteText}>{challenge.note}</Text>}
 
-        {/* Progress bar */}
         <View style={styles.progressTrack}>
           <View style={[styles.progressFill, { width: `${pctComplete}%` as any, backgroundColor: urgency }]} />
         </View>
 
-        {/* Stats */}
         <View style={styles.statsRow}>
-          <Text style={styles.statsLeft}>
-            {pctComplete}% · ${remaining.toLocaleString()} remaining
-          </Text>
+          <Text style={styles.statsLeft}>{pctComplete}% · ${remaining.toLocaleString()} remaining</Text>
           <Text style={styles.statsRight}>{formatDeadline(challenge.deadline)}</Text>
         </View>
 
-        {/* Urgency badge + $/day needed */}
         {(daysLeft <= 30 || perDay != null) && (
           <View style={styles.urgencyRow}>
             {daysLeft <= 30 && (
@@ -306,7 +283,6 @@ function ChallengeCard({
           </View>
         )}
 
-        {/* Inline spend + mark complete */}
         <View style={styles.actionRow}>
           <View style={styles.spendField}>
             <Text style={styles.spendFieldLabel}>Current spend</Text>
@@ -390,248 +366,6 @@ function EmptyState({ onAdd }: { onAdd: () => void }) {
   );
 }
 
-// ─── Add challenge sheet ──────────────────────────────────────────────────────
-
-interface FormState {
-  cardName: string;
-  bonusDescription: string;
-  minSpend: string;
-  currentSpend: string;
-  deadline: string;
-  bonusValue: string;
-  note: string;
-}
-
-interface FormErrors {
-  cardName?: string;
-  bonusDescription?: string;
-  minSpend?: string;
-  deadline?: string;
-}
-
-const BLANK_FORM: FormState = {
-  cardName: '', bonusDescription: '', minSpend: '', currentSpend: '0',
-  deadline: '', bonusValue: '', note: '',
-};
-
-function AddChallengeSheet({
-  visible, onClose, onSave, vaultCardNames,
-}: {
-  visible: boolean;
-  onClose: () => void;
-  onSave: (c: BonusChallenge) => void;
-  vaultCardNames: string[];
-}) {
-  const [form, setForm] = useState<FormState>(BLANK_FORM);
-  const [errors, setErrors] = useState<FormErrors>({});
-  const [showAutocomplete, setShowAutocomplete] = useState(false);
-
-  const filtered = useMemo(
-    () => form.cardName.length > 0
-      ? vaultCardNames.filter((n) => n.toLowerCase().includes(form.cardName.toLowerCase()))
-      : vaultCardNames,
-    [form.cardName, vaultCardNames],
-  );
-
-  const set = useCallback(<K extends keyof FormState>(key: K, val: string) => {
-    setForm((f) => ({ ...f, [key]: val }));
-    setErrors((e) => ({ ...e, [key]: undefined }));
-  }, []);
-
-  const handleClose = useCallback(() => {
-    setForm(BLANK_FORM);
-    setErrors({});
-    setShowAutocomplete(false);
-    onClose();
-  }, [onClose]);
-
-  const handleSave = useCallback(() => {
-    const errs: FormErrors = {};
-    if (!form.cardName.trim())         errs.cardName = 'Required';
-    if (!form.bonusDescription.trim()) errs.bonusDescription = 'Required';
-
-    const minSpend = parseFloat(form.minSpend);
-    if (isNaN(minSpend) || minSpend <= 0) errs.minSpend = 'Enter a valid amount';
-
-    const deadlineDate = parseDeadlineInput(form.deadline);
-    if (!deadlineDate) errs.deadline = 'Use MM/DD/YYYY format';
-
-    if (Object.keys(errs).length > 0) { setErrors(errs); return; }
-
-    const bonusValueNum = parseFloat(form.bonusValue);
-
-    onSave({
-      id: generateId(),
-      cardName: form.cardName.trim(),
-      bonusDescription: form.bonusDescription.trim(),
-      minSpend,
-      currentSpend: parseFloat(form.currentSpend) || 0,
-      deadline: deadlineDate!.toISOString(),
-      bonusValue: isNaN(bonusValueNum) ? undefined : bonusValueNum,
-      completed: false,
-      note: form.note.trim() || undefined,
-    });
-
-    setForm(BLANK_FORM);
-    setErrors({});
-    setShowAutocomplete(false);
-  }, [form, onSave]);
-
-  return (
-    <Modal
-      visible={visible}
-      animationType="slide"
-      presentationStyle="pageSheet"
-      onRequestClose={handleClose}
-    >
-      <SafeAreaView style={styles.sheetSafe}>
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          style={styles.sheetKAV}
-        >
-          <View style={styles.sheetHeader}>
-            <TouchableOpacity onPress={handleClose}>
-              <Text style={styles.sheetCancel}>Cancel</Text>
-            </TouchableOpacity>
-            <Text style={styles.sheetTitle}>New Challenge</Text>
-            <TouchableOpacity onPress={handleSave}>
-              <Text style={styles.sheetSave}>Save</Text>
-            </TouchableOpacity>
-          </View>
-
-          <ScrollView
-            style={styles.sheetScroll}
-            contentContainerStyle={styles.sheetContent}
-            keyboardShouldPersistTaps="handled"
-          >
-            {/* Card name + autocomplete */}
-            <View style={styles.fieldGroup}>
-              <Text style={styles.fieldLabel}>Card Name</Text>
-              <TextInput
-                style={[styles.textInput, errors.cardName ? styles.inputError : null]}
-                placeholder="e.g. Chase Sapphire Reserve"
-                placeholderTextColor={Colors.textMuted}
-                value={form.cardName}
-                onChangeText={(v) => { set('cardName', v); setShowAutocomplete(true); }}
-                onFocus={() => setShowAutocomplete(true)}
-                onBlur={() => setTimeout(() => setShowAutocomplete(false), 160)}
-                returnKeyType="next"
-              />
-              {!!errors.cardName && <Text style={styles.errorText}>{errors.cardName}</Text>}
-              {showAutocomplete && filtered.length > 0 && (
-                <View style={styles.autocomplete}>
-                  {filtered.map((name) => (
-                    <TouchableOpacity
-                      key={name}
-                      style={styles.autocompleteItem}
-                      onPress={() => { set('cardName', name); setShowAutocomplete(false); }}
-                    >
-                      <Text style={styles.autocompleteText}>{name}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              )}
-            </View>
-
-            {/* Bonus description */}
-            <View style={styles.fieldGroup}>
-              <Text style={styles.fieldLabel}>Bonus Description</Text>
-              <TextInput
-                style={[styles.textInput, errors.bonusDescription ? styles.inputError : null]}
-                placeholder="e.g. 75,000 miles after $4,000 spend"
-                placeholderTextColor={Colors.textMuted}
-                value={form.bonusDescription}
-                onChangeText={(v) => set('bonusDescription', v)}
-                returnKeyType="next"
-              />
-              {!!errors.bonusDescription && <Text style={styles.errorText}>{errors.bonusDescription}</Text>}
-            </View>
-
-            {/* Min spend + current spend */}
-            <View style={styles.fieldRow}>
-              <View style={[styles.fieldGroup, styles.fieldHalf]}>
-                <Text style={styles.fieldLabel}>Min. Spend ($)</Text>
-                <TextInput
-                  style={[styles.textInput, errors.minSpend ? styles.inputError : null]}
-                  placeholder="4000"
-                  placeholderTextColor={Colors.textMuted}
-                  value={form.minSpend}
-                  onChangeText={(v) => set('minSpend', v)}
-                  keyboardType="decimal-pad"
-                />
-                {!!errors.minSpend && <Text style={styles.errorText}>{errors.minSpend}</Text>}
-              </View>
-              <View style={styles.fieldRowGap} />
-              <View style={[styles.fieldGroup, styles.fieldHalf]}>
-                <Text style={styles.fieldLabel}>Current Spend ($)</Text>
-                <TextInput
-                  style={styles.textInput}
-                  placeholder="0"
-                  placeholderTextColor={Colors.textMuted}
-                  value={form.currentSpend}
-                  onChangeText={(v) => set('currentSpend', v)}
-                  keyboardType="decimal-pad"
-                />
-              </View>
-            </View>
-
-            {/* Deadline */}
-            <View style={styles.fieldGroup}>
-              <Text style={styles.fieldLabel}>Deadline</Text>
-              <TextInput
-                style={[styles.textInput, errors.deadline ? styles.inputError : null]}
-                placeholder="MM/DD/YYYY"
-                placeholderTextColor={Colors.textMuted}
-                value={form.deadline}
-                onChangeText={(v) => set('deadline', v)}
-                keyboardType="numbers-and-punctuation"
-                returnKeyType="next"
-              />
-              {!!errors.deadline && <Text style={styles.errorText}>{errors.deadline}</Text>}
-            </View>
-
-            {/* Est. bonus value */}
-            <View style={styles.fieldGroup}>
-              <Text style={styles.fieldLabel}>
-                Est. Bonus Value ($){' '}
-                <Text style={styles.optionalLabel}>optional</Text>
-              </Text>
-              <TextInput
-                style={styles.textInput}
-                placeholder="e.g. 1500"
-                placeholderTextColor={Colors.textMuted}
-                value={form.bonusValue}
-                onChangeText={(v) => set('bonusValue', v)}
-                keyboardType="decimal-pad"
-              />
-            </View>
-
-            {/* Notes */}
-            <View style={styles.fieldGroup}>
-              <Text style={styles.fieldLabel}>
-                Notes{' '}
-                <Text style={styles.optionalLabel}>optional</Text>
-              </Text>
-              <TextInput
-                style={[styles.textInput, styles.textArea]}
-                placeholder="Any extra context..."
-                placeholderTextColor={Colors.textMuted}
-                value={form.note}
-                onChangeText={(v) => set('note', v)}
-                multiline
-                numberOfLines={3}
-                textAlignVertical="top"
-              />
-            </View>
-
-            <View style={styles.sheetBottomPad} />
-          </ScrollView>
-        </KeyboardAvoidingView>
-      </SafeAreaView>
-    </Modal>
-  );
-}
-
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
@@ -649,26 +383,16 @@ const styles = StyleSheet.create({
 
   // ── Challenge card ─────────────────────────────────────────────────────────
   challengeCard: {
-    backgroundColor: Colors.surface,
-    borderRadius: Radius.card,
-    marginBottom: Spacing.md,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.07,
-    shadowRadius: 8,
-    elevation: 3,
+    backgroundColor: Colors.surface, borderRadius: Radius.card, marginBottom: Spacing.md,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.07, shadowRadius: 8, elevation: 3,
   },
   accentBarTrack: {
-    height: 3,
-    backgroundColor: Colors.border,
-    borderTopLeftRadius: Radius.card,
-    borderTopRightRadius: Radius.card,
-    overflow: 'hidden',
+    height: 3, backgroundColor: Colors.border,
+    borderTopLeftRadius: Radius.card, borderTopRightRadius: Radius.card, overflow: 'hidden',
   },
   accentBarFill: { height: 3 },
-
   cardBody: { padding: Spacing.lg, gap: Spacing.md },
-
   cardTitleRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
   cardName: { fontFamily: Font.bold, fontSize: 17, color: Colors.textPrimary, flex: 1 },
   bonusPill: {
@@ -676,26 +400,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.md, paddingVertical: 3, flexShrink: 1,
   },
   bonusPillText: { fontFamily: Font.semiBold, fontSize: 12 },
-
   bonusValueText: { fontFamily: Font.regular, fontSize: 13, color: Colors.textMuted },
-  noteText: {
-    fontFamily: Font.regular, fontSize: 13, color: Colors.textSecondary, fontStyle: 'italic',
-  },
-
-  progressTrack: {
-    height: 8, backgroundColor: Colors.border, borderRadius: Radius.pill, overflow: 'hidden',
-  },
+  noteText: { fontFamily: Font.regular, fontSize: 13, color: Colors.textSecondary, fontStyle: 'italic' },
+  progressTrack: { height: 8, backgroundColor: Colors.border, borderRadius: Radius.pill, overflow: 'hidden' },
   progressFill: { height: 8, borderRadius: Radius.pill },
-
   statsRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   statsLeft: { fontFamily: Font.medium, fontSize: 13, color: Colors.textSecondary },
   statsRight: { fontFamily: Font.regular, fontSize: 13, color: Colors.textMuted },
-
   urgencyRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md, flexWrap: 'wrap' },
   urgencyBadge: { borderRadius: Radius.pill, paddingHorizontal: Spacing.md, paddingVertical: 4 },
   urgencyText: { fontFamily: Font.bold, fontSize: 12 },
   perDayText: { fontFamily: Font.medium, fontSize: 13, color: Colors.textSecondary },
-
   actionRow: {
     flexDirection: 'row', alignItems: 'flex-end',
     justifyContent: 'space-between', gap: Spacing.md, marginTop: Spacing.xs,
@@ -733,7 +448,6 @@ const styles = StyleSheet.create({
   },
   archiveBadgeText: { fontFamily: Font.bold, fontSize: 12, color: Colors.textMuted },
   archiveChevron: { marginLeft: 'auto' as any },
-
   completedRow: {
     flexDirection: 'row', alignItems: 'center',
     paddingVertical: Spacing.md, paddingHorizontal: Spacing.lg,
@@ -741,8 +455,7 @@ const styles = StyleSheet.create({
   },
   completedLeft: { flex: 1, gap: 3 },
   completedCardName: {
-    fontFamily: Font.semiBold, fontSize: 14, color: Colors.textMuted,
-    textDecorationLine: 'line-through',
+    fontFamily: Font.semiBold, fontSize: 14, color: Colors.textMuted, textDecorationLine: 'line-through',
   },
   completedBonus: { fontFamily: Font.regular, fontSize: 12, color: Colors.textMuted },
   earnedRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs, marginTop: 2 },
@@ -765,8 +478,7 @@ const styles = StyleSheet.create({
   },
   emptyTitle: { fontFamily: Font.bold, fontSize: 22, color: Colors.textPrimary, textAlign: 'center' },
   emptySubtitle: {
-    fontFamily: Font.regular, fontSize: 15, color: Colors.textSecondary,
-    textAlign: 'center', lineHeight: 22,
+    fontFamily: Font.regular, fontSize: 15, color: Colors.textSecondary, textAlign: 'center', lineHeight: 22,
   },
   emptyAddBtn: {
     flexDirection: 'row', alignItems: 'center', gap: Spacing.sm,
@@ -774,50 +486,4 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.md, paddingHorizontal: Spacing.xxxl, borderRadius: Radius.pill,
   },
   emptyAddBtnText: { fontFamily: Font.semiBold, fontSize: 15, color: '#fff' },
-
-  // ── Add challenge sheet ────────────────────────────────────────────────────
-  sheetSafe: { flex: 1, backgroundColor: Colors.background },
-  sheetKAV: { flex: 1 },
-  sheetHeader: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md,
-    borderBottomWidth: 1, borderBottomColor: Colors.border,
-    backgroundColor: Colors.surface,
-  },
-  sheetCancel: { fontFamily: Font.medium, fontSize: 16, color: Colors.textSecondary },
-  sheetTitle: { fontFamily: Font.bold, fontSize: 17, color: Colors.textPrimary },
-  sheetSave: { fontFamily: Font.semiBold, fontSize: 16, color: Colors.action },
-  sheetScroll: { flex: 1 },
-  sheetContent: { padding: Spacing.lg },
-  sheetBottomPad: { height: 32 },
-
-  // Form fields
-  fieldGroup: { marginBottom: Spacing.lg },
-  fieldRow: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: Spacing.lg },
-  fieldRowGap: { width: Spacing.md },
-  fieldHalf: { flex: 1, marginBottom: 0 },
-  fieldLabel: {
-    fontFamily: Font.semiBold, fontSize: 13, color: Colors.textSecondary, marginBottom: Spacing.sm,
-  },
-  optionalLabel: { fontFamily: Font.regular, fontSize: 12, color: Colors.textMuted },
-  textInput: {
-    backgroundColor: Colors.surface, borderWidth: 1, borderColor: Colors.border,
-    borderRadius: Radius.input, paddingHorizontal: Spacing.md, paddingVertical: Spacing.md,
-    fontFamily: Font.regular, fontSize: 15, color: Colors.textPrimary,
-  },
-  textArea: { minHeight: 80, textAlignVertical: 'top' },
-  inputError: { borderColor: '#DC2626' },
-  errorText: { fontFamily: Font.regular, fontSize: 12, color: '#DC2626', marginTop: 4 },
-
-  autocomplete: {
-    borderWidth: 1, borderColor: Colors.border, borderRadius: Radius.input,
-    backgroundColor: Colors.surface, marginTop: 4,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08, shadowRadius: 6, elevation: 4,
-  },
-  autocompleteItem: {
-    paddingHorizontal: Spacing.md, paddingVertical: Spacing.md,
-    borderBottomWidth: 1, borderBottomColor: Colors.border,
-  },
-  autocompleteText: { fontFamily: Font.medium, fontSize: 15, color: Colors.textPrimary },
 });

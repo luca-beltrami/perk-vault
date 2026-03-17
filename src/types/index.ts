@@ -55,6 +55,7 @@ export interface UserCard {
 export interface BonusChallenge {
   id: string;
   cardName: string;
+  userCardId?: string;       // links to UserCard.id when created via vault picker
   bonusDescription: string;
   minSpend: number;
   currentSpend: number;

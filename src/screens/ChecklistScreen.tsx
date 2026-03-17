@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { Swipeable } from 'react-native-gesture-handler';
 import { Ionicons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
 import { Colors, Font, Radius, Spacing } from '../components/theme';
 import { useAppState } from '../hooks/useAppState';
 import { cardLibrary } from '../data/cardLibrary';
@@ -22,7 +23,9 @@ import {
   getPerkIcon,
   getCurrentPeriodKey,
 } from '../utils/perkUtils';
+import { challengeUrgencyColor, getDaysToDeadline } from './ChallengesScreen';
 import type { ResolvedPerk } from '../utils/perkUtils';
+import type { BonusChallenge } from '../types';
 
 interface UndoState {
   userPerkId: string;
@@ -54,6 +57,7 @@ const PLACEHOLDER_INSIGHTS = [
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
 export default function ChecklistScreen() {
+  const navigation = useNavigation<any>();
   const { state, setState } = useAppState();
   const now = useRef(new Date()).current;
 
@@ -75,6 +79,15 @@ export default function ChecklistScreen() {
   const tierMonth = useMemo(() => filterTier(resolvedPerks, 8, 30),        [resolvedPerks]);
 
   const hasAnyUrgent = tierToday.length + tierWeek.length + tierMonth.length > 0;
+
+  // Active bonus challenges expiring within 30 days
+  const urgentChallenges = useMemo(
+    () => state.challenges
+      .filter((c) => !c.completed && getDaysToDeadline(c.deadline, now) <= 30)
+      .sort((a, b) => new Date(a.deadline).getTime() - new Date(b.deadline).getTime()),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [state.challenges],
+  );
 
   // ── Actions ─────────────────────────────────────────────────────────────
 
@@ -185,6 +198,24 @@ export default function ChecklistScreen() {
           </View>
         )}
 
+        {/* ── Bonus Challenges ─────────────────────────────────────── */}
+        {urgentChallenges.length > 0 && (
+          <View style={styles.challengesSection}>
+            <View style={styles.challengesSectionHeader}>
+              <Ionicons name="trophy-outline" size={18} color={Colors.textPrimary} />
+              <Text style={styles.challengesSectionTitle}>Bonus Challenges</Text>
+            </View>
+            {urgentChallenges.map((c) => (
+              <UrgentChallengeRow
+                key={c.id}
+                challenge={c}
+                now={now}
+                onPress={() => navigation.navigate('Challenges' as never)}
+              />
+            ))}
+          </View>
+        )}
+
         {/* ── Insights ─────────────────────────────────────────────── */}
         <View style={styles.insightsSection}>
           <View style={styles.insightsHeader}>
@@ -221,6 +252,60 @@ export default function ChecklistScreen() {
         />
       )}
     </SafeAreaView>
+  );
+}
+
+// ─── Urgent challenge row ─────────────────────────────────────────────────────
+
+function UrgentChallengeRow({
+  challenge, now, onPress,
+}: {
+  challenge: BonusChallenge;
+  now: Date;
+  onPress: () => void;
+}) {
+  const daysLeft = getDaysToDeadline(challenge.deadline, now);
+  const urgency  = challengeUrgencyColor(daysLeft);
+  const progress = challenge.minSpend > 0
+    ? Math.min(challenge.currentSpend / challenge.minSpend, 1)
+    : 0;
+  const pctComplete = Math.round(progress * 100);
+  const remaining   = Math.max(challenge.minSpend - challenge.currentSpend, 0);
+  const perDay = daysLeft > 0 && remaining > 0 ? Math.ceil(remaining / daysLeft) : null;
+
+  return (
+    <TouchableOpacity style={styles.urgChallengeRow} onPress={onPress} activeOpacity={0.75}>
+      {/* Left accent */}
+      <View style={[styles.urgChallengeAccent, { backgroundColor: urgency }]} />
+
+      <View style={styles.urgChallengeBody}>
+        {/* Title row */}
+        <View style={styles.urgChallengeTitleRow}>
+          <Text style={styles.urgChallengeCard} numberOfLines={1}>{challenge.cardName}</Text>
+          <View style={[styles.urgChallengeDayBadge, { backgroundColor: urgency + '22' }]}>
+            <Text style={[styles.urgChallengeDayText, { color: urgency }]}>
+              {daysLeft > 0 ? `${daysLeft}d` : daysLeft === 0 ? 'Today' : 'Overdue'}
+            </Text>
+          </View>
+        </View>
+        <Text style={styles.urgChallengeBonus} numberOfLines={1}>{challenge.bonusDescription}</Text>
+
+        {/* Mini progress bar */}
+        <View style={styles.urgProgressTrack}>
+          <View style={[styles.urgProgressFill, { width: `${pctComplete}%` as any, backgroundColor: urgency }]} />
+        </View>
+
+        {/* Footer */}
+        <View style={styles.urgChallengeFooter}>
+          <Text style={styles.urgChallengeStats}>{pctComplete}% · ${remaining.toLocaleString()} left</Text>
+          {perDay != null && (
+            <Text style={styles.urgChallengePerDay}>${perDay}/day</Text>
+          )}
+        </View>
+      </View>
+
+      <Ionicons name="chevron-forward" size={15} color={Colors.textMuted} style={styles.urgChallengeChevron} />
+    </TouchableOpacity>
   );
 }
 
@@ -399,6 +484,35 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.success, width: 80, alignItems: 'center', justifyContent: 'center', gap: 4,
   },
   swipeActionText: { fontFamily: Font.bold, fontSize: 11, color: '#fff' },
+
+  // Bonus challenges section
+  challengesSection: { marginTop: Spacing.xxl, paddingHorizontal: Spacing.lg },
+  challengesSectionHeader: {
+    flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, marginBottom: Spacing.md,
+  },
+  challengesSectionTitle: { fontFamily: Font.semiBold, fontSize: 16, color: Colors.textPrimary },
+
+  // Urgent challenge row
+  urgChallengeRow: {
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: Colors.surface, borderRadius: Radius.row, marginBottom: Spacing.sm,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04, shadowRadius: 4, elevation: 1,
+    overflow: 'hidden',
+  },
+  urgChallengeAccent: { width: 4, alignSelf: 'stretch' },
+  urgChallengeBody: { flex: 1, paddingVertical: Spacing.md, paddingHorizontal: Spacing.md, gap: 4 },
+  urgChallengeTitleRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
+  urgChallengeCard: { fontFamily: Font.semiBold, fontSize: 14, color: Colors.textPrimary, flex: 1 },
+  urgChallengeDayBadge: { borderRadius: Radius.pill, paddingHorizontal: Spacing.sm, paddingVertical: 2 },
+  urgChallengeDayText: { fontFamily: Font.bold, fontSize: 11 },
+  urgChallengeBonus: { fontFamily: Font.regular, fontSize: 12, color: Colors.textMuted },
+  urgProgressTrack: { height: 4, backgroundColor: Colors.border, borderRadius: Radius.pill, overflow: 'hidden', marginVertical: 4 },
+  urgProgressFill: { height: 4, borderRadius: Radius.pill },
+  urgChallengeFooter: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  urgChallengeStats: { fontFamily: Font.regular, fontSize: 11, color: Colors.textMuted },
+  urgChallengePerDay: { fontFamily: Font.semiBold, fontSize: 11, color: Colors.textSecondary },
+  urgChallengeChevron: { marginRight: Spacing.sm },
 
   // Insights
   insightsSection: { marginTop: Spacing.xxl, paddingHorizontal: Spacing.lg, marginBottom: Spacing.lg },

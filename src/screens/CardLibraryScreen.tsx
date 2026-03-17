@@ -9,6 +9,9 @@ import {
   SafeAreaView,
   Dimensions,
 } from 'react-native';
+import AddChallengeSheet from '../components/AddChallengeSheet';
+import type { VaultCardOption } from '../components/AddChallengeSheet';
+import type { BonusChallenge } from '../types';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 // 16px padding each side + 12px gap between the two columns
@@ -82,6 +85,7 @@ function buildSections(
 export default function CardLibraryScreen({ navigation }: Props) {
   const [query, setQuery] = useState('');
   const [selectedCard, setSelectedCard] = useState<Card | null>(null);
+  const [challengePrefill, setChallengePrefill] = useState<{ cardId: string } | null>(null);
   const { state, setState } = useAppState();
 
   const sections = useMemo(
@@ -112,6 +116,27 @@ export default function CardLibraryScreen({ navigation }: Props) {
       setState({ ...state, cards: [...state.cards, newCard] });
     },
     [state, setState],
+  );
+
+  // Called from the bonus challenge prompt step in CardDetailSheet
+  const handleAddChallenge = useCallback((libraryCardId: string) => {
+    // Find the newly added user card for this library card
+    const userCard = state.cards.find((uc) => uc.cardLibraryId === libraryCardId);
+    setSelectedCard(null);
+    setChallengePrefill({ cardId: userCard?.id ?? '' });
+  }, [state.cards]);
+
+  const handleSaveChallenge = useCallback((challenge: BonusChallenge) => {
+    setState({ ...state, challenges: [...state.challenges, challenge] });
+    setChallengePrefill(null);
+  }, [state, setState]);
+
+  const vaultCards = useMemo<VaultCardOption[]>(
+    () => state.cards.map((uc) => {
+      const lib = cardLibrary.find((lc) => lc.id === uc.cardLibraryId);
+      return { id: uc.id, name: uc.name || lib?.name || '', issuer: lib?.issuer ?? '' };
+    }).filter((vc) => vc.name),
+    [state.cards],
   );
 
   return (
@@ -176,8 +201,17 @@ export default function CardLibraryScreen({ navigation }: Props) {
               navigation.goBack();
             }}
             onAddAnother={() => setSelectedCard(null)}
+            onAddChallenge={(libraryCardId) => handleAddChallenge(libraryCardId)}
           />
         )}
+
+        <AddChallengeSheet
+          visible={challengePrefill != null}
+          onClose={() => setChallengePrefill(null)}
+          onSave={handleSaveChallenge}
+          vaultCards={vaultCards}
+          prefilledCardId={challengePrefill?.cardId}
+        />
       </View>
     </SafeAreaView>
   );

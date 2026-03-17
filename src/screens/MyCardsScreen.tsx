@@ -59,11 +59,34 @@ export default function MyCardsScreen({ navigation }: Props) {
     [state.cards],
   );
 
-  // Sort by health score ascending (most urgent = fewest perks used = lowest score)
-  const sortedCards = useMemo(
-    () => [...cards].sort((a, b) => getHealthScore(a) - getHealthScore(b)),
-    [cards],
-  );
+  // Sort by expiring value (≤15d) descending, then available value descending
+  const sortedCards = useMemo(() => {
+    return [...cards].sort((a, b) => {
+      const aRp = resolvedPerks.filter((rp) => rp.userCard.id === a.id);
+      const bRp = resolvedPerks.filter((rp) => rp.userCard.id === b.id);
+      const aExp = aRp.filter((rp) => rp.daysRemaining <= 15).reduce((s, rp) => s + rp.perk.amount, 0);
+      const bExp = bRp.filter((rp) => rp.daysRemaining <= 15).reduce((s, rp) => s + rp.perk.amount, 0);
+      if (aExp !== bExp) return bExp - aExp;
+      const aAvail = aRp.reduce((s, rp) => s + rp.perk.amount, 0);
+      const bAvail = bRp.reduce((s, rp) => s + rp.perk.amount, 0);
+      return bAvail - aAvail;
+    });
+  }, [cards, resolvedPerks]);
+
+  // "+" header button — navigates to card library
+  React.useLayoutEffect(() => {
+    navigation.setOptions({
+      headerRight: () => (
+        <TouchableOpacity
+          onPress={() => navigation.navigate('CardLibrary')}
+          style={{ marginRight: 8 }}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        >
+          <Ionicons name="add" size={26} color={Colors.action} />
+        </TouchableOpacity>
+      ),
+    });
+  }, [navigation]);
 
   const handleToggle = useCallback((id: string) => {
     setExpandedIds((prev) => {

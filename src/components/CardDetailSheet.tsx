@@ -13,7 +13,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Colors, Font, Radius, Spacing } from './theme';
 import type { Card, Perk } from '../types';
 
-type Step = 'detail' | 'anniversary' | 'success';
+type Step = 'detail' | 'anniversary' | 'bonus' | 'success';
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
@@ -31,6 +31,7 @@ interface Props {
   onAdd: (card: Card, month: number | undefined) => void;
   onGoToVault: () => void;
   onAddAnother: () => void;
+  onAddChallenge?: (libraryCardId: string, cardName: string) => void;
 }
 
 export default function CardDetailSheet({
@@ -40,6 +41,7 @@ export default function CardDetailSheet({
   onAdd,
   onGoToVault,
   onAddAnother,
+  onAddChallenge,
 }: Props) {
   const insets = useSafeAreaInsets();
   const [step, setStep] = useState<Step>('detail');
@@ -63,12 +65,12 @@ export default function CardDetailSheet({
 
   function handleConfirmMonth() {
     onAdd(card, selectedMonth ?? undefined);
-    setStep('success');
+    setStep('bonus');
   }
 
   function handleSkip() {
     onAdd(card, undefined);
-    setStep('success');
+    setStep('bonus');
     setShowToast(true);
   }
 
@@ -101,6 +103,15 @@ export default function CardDetailSheet({
               onSelectMonth={setSelectedMonth}
               onConfirm={handleConfirmMonth}
               onSkip={handleSkip}
+            />
+          )}
+
+          {step === 'bonus' && (
+            <BonusStep
+              onAddChallenge={onAddChallenge
+                ? () => { onClose(); onAddChallenge(card.id, card.name); }
+                : undefined}
+              onSkip={() => setStep('success')}
             />
           )}
 
@@ -274,6 +285,43 @@ function AnniversaryStep({
   );
 }
 
+// ─── Bonus Step ──────────────────────────────────────────────────────────────
+
+function BonusStep({
+  onAddChallenge,
+  onSkip,
+}: {
+  onAddChallenge?: () => void;
+  onSkip: () => void;
+}) {
+  return (
+    <View style={styles.stepContainer}>
+      <View style={styles.bonusIconRow}>
+        <Ionicons name="trophy-outline" size={40} color="#00C9A7" />
+      </View>
+      <Text style={styles.stepTitle}>Did you just open this card?</Text>
+      <Text style={styles.stepSubtitle}>
+        Add a bonus challenge to track your minimum spend and make sure you earn your welcome bonus.
+      </Text>
+
+      <View style={styles.footer}>
+        {onAddChallenge ? (
+          <TouchableOpacity style={styles.ctaBtn} onPress={onAddChallenge} activeOpacity={0.8}>
+            <Text style={styles.ctaBtnText}>Add bonus challenge →</Text>
+          </TouchableOpacity>
+        ) : (
+          <View style={[styles.ctaBtn, styles.ctaBtnDisabled]}>
+            <Text style={styles.ctaBtnText}>Add bonus challenge →</Text>
+          </View>
+        )}
+        <TouchableOpacity style={styles.skipBtn} onPress={onSkip}>
+          <Text style={styles.skipText}>Skip</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+}
+
 // ─── Success Step ────────────────────────────────────────────────────────────
 
 function SuccessStep({
@@ -425,6 +473,9 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: Colors.textMuted,
   },
+
+  // Bonus step
+  bonusIconRow: { alignItems: 'center', marginBottom: Spacing.lg },
 
   // Anniversary step
   stepContainer: { paddingHorizontal: Spacing.xxl, paddingTop: Spacing.xl },
