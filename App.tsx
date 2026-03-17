@@ -9,6 +9,7 @@ import {
   PlusJakartaSans_700Bold,
 } from '@expo-google-fonts/plus-jakarta-sans';
 import TabNavigator from './src/navigation/TabNavigator';
+import { AppStateProvider } from './src/context/AppStateContext';
 
 enableScreens();
 
@@ -23,8 +24,10 @@ export default function App() {
   if (!fontsLoaded) return null;
 
   return (
-    <NavigationContainer>
-      <TabNavigator />
-    </NavigationContainer>
+    <AppStateProvider>
+      <NavigationContainer>
+        <TabNavigator />
+      </NavigationContainer>
+    </AppStateProvider>
   );
 }
