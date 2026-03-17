@@ -129,9 +129,66 @@ export default function MyCardsScreen({ navigation }: Props) {
     );
   }
 
+  // ── Vault-wide summary metrics ───────────────────────────────────────────
+  const totalCaptured = useMemo(() => {
+    let total = 0;
+    for (const userCard of cards) {
+      const libCard = cardLibrary.find((c) => c.id === userCard.cardLibraryId);
+      if (!libCard) continue;
+      for (const perk of libCard.perks) {
+        if (!isPerkCurrentHalf(perk, now)) continue;
+        const up = userCard.perks.find((u) => u.perkId === perk.id);
+        if (up?.used && perk.amount > 0) total += perk.amount;
+      }
+    }
+    return total;
+  }, [cards]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const totalAvailable = resolvedPerks.reduce((s, rp) => s + rp.perk.amount, 0);
+  const totalExpiring  = resolvedPerks.filter((rp) => rp.daysRemaining <= 15).reduce((s, rp) => s + rp.perk.amount, 0);
+  const totalFees      = cards.reduce((s, uc) => {
+    const lib = cardLibrary.find((c) => c.id === uc.cardLibraryId);
+    return s + (lib?.annualFee ?? 0);
+  }, 0);
+  const vaultGrade     = useMemo(() => calculateGrade(resolvedPerks), [resolvedPerks]);
+  const vaultGradeInfo = useMemo(() => getGradeInfo(vaultGrade), [vaultGrade]);
+
   return (
     <SafeAreaView style={styles.safe}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+
+        {/* ── Vault summary ─────────────────────────────────────────── */}
+        <View style={styles.summaryCard}>
+          <View style={styles.summaryTop}>
+            <Text style={styles.summaryTitle}>Your Vault</Text>
+            <View style={[styles.summaryGradePill, { backgroundColor: vaultGradeInfo.color }]}>
+              <Text style={styles.summaryGradeText}>{vaultGradeInfo.grade}</Text>
+            </View>
+          </View>
+          <View style={styles.summaryGrid}>
+            <View style={styles.summaryMetric}>
+              <Text style={[styles.summaryValue, { color: Colors.success }]}>${totalCaptured}</Text>
+              <Text style={styles.summaryLabel}>Captured</Text>
+            </View>
+            <View style={styles.summaryDivider} />
+            <View style={styles.summaryMetric}>
+              <Text style={[styles.summaryValue, { color: Colors.action }]}>${totalAvailable}</Text>
+              <Text style={styles.summaryLabel}>Available</Text>
+            </View>
+            <View style={styles.summaryDivider} />
+            <View style={styles.summaryMetric}>
+              <Text style={[styles.summaryValue, { color: totalExpiring > 0 ? '#D97706' : Colors.textMuted }]}>
+                ${totalExpiring}
+              </Text>
+              <Text style={styles.summaryLabel}>Expiring</Text>
+            </View>
+            <View style={styles.summaryDivider} />
+            <View style={styles.summaryMetric}>
+              <Text style={[styles.summaryValue, { color: Colors.textMuted }]}>${totalFees}</Text>
+              <Text style={styles.summaryLabel}>Annual fees</Text>
+            </View>
+          </View>
+        </View>
 
         {/* Add another card */}
         <TouchableOpacity style={styles.addCardRow} onPress={() => navigation.navigate('CardLibrary')}>
@@ -330,6 +387,23 @@ const styles = StyleSheet.create({
   emptySubtitle: { fontFamily: Font.regular, fontSize: 15, color: Colors.textSecondary, textAlign: 'center', lineHeight: 22 },
   addBtn: { marginTop: Spacing.sm, backgroundColor: Colors.action, paddingVertical: Spacing.lg, paddingHorizontal: Spacing.xxxl, borderRadius: Radius.pill },
   addBtnText: { fontFamily: Font.semiBold, fontSize: 16, color: Colors.surface },
+
+  // Vault summary card
+  summaryCard: {
+    backgroundColor: Colors.surface, borderRadius: 16,
+    marginBottom: Spacing.md, padding: Spacing.lg,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.07, shadowRadius: 8, elevation: 3,
+  },
+  summaryTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: Spacing.lg },
+  summaryTitle: { fontFamily: Font.bold, fontSize: 18, color: Colors.textPrimary },
+  summaryGradePill: { borderRadius: Radius.pill, paddingHorizontal: Spacing.md, paddingVertical: 4 },
+  summaryGradeText: { fontFamily: Font.bold, fontSize: 14, color: '#fff' },
+  summaryGrid: { flexDirection: 'row', alignItems: 'center' },
+  summaryMetric: { flex: 1, alignItems: 'center' },
+  summaryValue: { fontFamily: Font.bold, fontSize: 20 },
+  summaryLabel: { fontFamily: Font.regular, fontSize: 11, color: Colors.textMuted, marginTop: 3 },
+  summaryDivider: { width: 1, height: 36, backgroundColor: Colors.border },
 
   // Add card row
   addCardRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, marginBottom: Spacing.md },

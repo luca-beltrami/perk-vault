@@ -7,6 +7,7 @@ import {
   StyleSheet,
   SafeAreaView,
 } from 'react-native';
+import { Swipeable } from 'react-native-gesture-handler';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Font, Radius, Spacing } from '../components/theme';
 import { useAppState } from '../hooks/useAppState';
@@ -258,41 +259,63 @@ function BenefitRow({
   onPress: (rp: ResolvedPerk) => void;
   onMarkUsed: (rp: ResolvedPerk) => void;
 }) {
+  const swipeableRef = useRef<Swipeable>(null);
   const dayColor = urgencyColor(rp.daysRemaining);
   const iconName = getPerkIcon(rp.perk.name) as any;
-  // Icon colour = tier colour at 80% opacity
-  const iconColor = color + 'CC'; // CC = 80% in hex
+  const iconColor = color + 'CC'; // 80% opacity
+
+  const renderRightActions = useCallback(() => (
+    <TouchableOpacity
+      style={styles.swipeAction}
+      onPress={() => {
+        swipeableRef.current?.close();
+        onMarkUsed(rp);
+      }}
+      activeOpacity={0.85}
+    >
+      <Ionicons name="checkmark-circle" size={26} color="#fff" />
+      <Text style={styles.swipeActionText}>Done</Text>
+    </TouchableOpacity>
+  ), [rp, onMarkUsed]);
 
   return (
-    <TouchableOpacity style={styles.benefitRow} onPress={() => onPress(rp)} activeOpacity={0.72}>
-      {/* Category icon */}
-      <View style={[styles.categoryIcon, { backgroundColor: color + '18' }]}>
-        <Ionicons name={iconName} size={20} color={iconColor} />
-      </View>
-
-      {/* Text */}
-      <View style={styles.benefitRowLeft}>
-        <Text style={styles.benefitCardName} numberOfLines={1}>{rp.libCard.name}</Text>
-        <Text style={styles.benefitPerkName} numberOfLines={1}>{rp.perk.name}</Text>
-      </View>
-
-      {/* Right: amount + day badge + quick-done button */}
-      <View style={styles.benefitRowRight}>
-        {rp.perk.amount > 0 && (
-          <Text style={styles.benefitAmount}>${rp.perk.amount}</Text>
-        )}
-        <View style={[styles.dayBadge, { backgroundColor: dayColor }]}>
-          <Text style={styles.dayBadgeText}>{formatDaysRemaining(rp.daysRemaining)}</Text>
+    <Swipeable
+      ref={swipeableRef}
+      renderRightActions={renderRightActions}
+      rightThreshold={72}
+      onSwipeableOpen={(direction) => {
+        if (direction === 'right') {
+          swipeableRef.current?.close();
+          onMarkUsed(rp);
+        }
+      }}
+      friction={2}
+      overshootRight={false}
+      containerStyle={styles.swipeableContainer}
+    >
+      <TouchableOpacity style={styles.benefitRow} onPress={() => onPress(rp)} activeOpacity={0.72}>
+        {/* Category icon */}
+        <View style={[styles.categoryIcon, { backgroundColor: color + '18' }]}>
+          <Ionicons name={iconName} size={20} color={iconColor} />
         </View>
-        <TouchableOpacity
-          style={styles.doneBtn}
-          onPress={() => onMarkUsed(rp)}
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-        >
-          <Ionicons name="checkmark-circle-outline" size={22} color="#059669" />
-        </TouchableOpacity>
-      </View>
-    </TouchableOpacity>
+
+        {/* Text */}
+        <View style={styles.benefitRowLeft}>
+          <Text style={styles.benefitCardName} numberOfLines={1}>{rp.libCard.name}</Text>
+          <Text style={styles.benefitPerkName} numberOfLines={1}>{rp.perk.name}</Text>
+        </View>
+
+        {/* Right: amount + day badge */}
+        <View style={styles.benefitRowRight}>
+          {rp.perk.amount > 0 && (
+            <Text style={styles.benefitAmount}>${rp.perk.amount}</Text>
+          )}
+          <View style={[styles.dayBadge, { backgroundColor: dayColor }]}>
+            <Text style={styles.dayBadgeText}>{formatDaysRemaining(rp.daysRemaining)}</Text>
+          </View>
+        </View>
+      </TouchableOpacity>
+    </Swipeable>
   );
 }
 
@@ -351,7 +374,6 @@ const styles = StyleSheet.create({
     borderRadius: Radius.row,
     paddingVertical: Spacing.md,
     paddingHorizontal: Spacing.md,
-    marginBottom: Spacing.sm,
     borderLeftWidth: 3,
     borderLeftColor: 'rgba(5, 150, 105, 0.25)',
     shadowColor: '#000',
@@ -372,7 +394,11 @@ const styles = StyleSheet.create({
   benefitAmount: { fontFamily: Font.bold, fontSize: 16, color: Colors.action },
   dayBadge: { borderRadius: Radius.pill, paddingHorizontal: 8, paddingVertical: 3 },
   dayBadgeText: { fontFamily: Font.bold, fontSize: 11, color: '#fff' },
-  doneBtn: { marginLeft: Spacing.xs },
+  swipeableContainer: { borderRadius: Radius.row, marginBottom: Spacing.sm, overflow: 'hidden' },
+  swipeAction: {
+    backgroundColor: Colors.success, width: 80, alignItems: 'center', justifyContent: 'center', gap: 4,
+  },
+  swipeActionText: { fontFamily: Font.bold, fontSize: 11, color: '#fff' },
 
   // Insights
   insightsSection: { marginTop: Spacing.xxl, paddingHorizontal: Spacing.lg, marginBottom: Spacing.lg },

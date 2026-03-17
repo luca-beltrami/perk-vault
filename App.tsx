@@ -1,6 +1,7 @@
 import React from 'react';
 import { enableScreens } from 'react-native-screens';
 import { NavigationContainer } from '@react-navigation/native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import {
   useFonts,
   PlusJakartaSans_400Regular,
@@ -24,10 +25,12 @@ export default function App() {
   if (!fontsLoaded) return null;
 
   return (
-    <AppStateProvider>
-      <NavigationContainer>
-        <TabNavigator />
-      </NavigationContainer>
-    </AppStateProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <AppStateProvider>
+        <NavigationContainer>
+          <TabNavigator />
+        </NavigationContainer>
+      </AppStateProvider>
+    </GestureHandlerRootView>
   );
 }
