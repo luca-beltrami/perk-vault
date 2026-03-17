@@ -9,15 +9,18 @@ interface Props {
   card: Card;
   isAdded: boolean;
   onPress: () => void;
+  /** Explicit pixel width of this tile — passed through to CreditCardGraphic. */
+  width: number;
 }
 
-export default function CardTile({ card, isAdded, onPress }: Props) {
+export default function CardTile({ card, isAdded, onPress, width }: Props) {
   return (
-    <TouchableOpacity style={styles.tile} onPress={onPress} activeOpacity={0.7}>
+    <TouchableOpacity style={[styles.tile, { width }]} onPress={onPress} activeOpacity={0.7}>
       <CreditCardGraphic
         cardId={card.id}
         cardName={card.name}
         network={card.network}
+        width={width}
       />
 
       <View style={styles.content}>
@@ -39,7 +42,6 @@ export default function CardTile({ card, isAdded, onPress }: Props) {
 
 const styles = StyleSheet.create({
   tile: {
-    width: '48%',
     backgroundColor: Colors.surface,
     borderRadius: Radius.card,
     marginBottom: Spacing.md,

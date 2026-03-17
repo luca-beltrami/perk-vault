@@ -6,7 +6,11 @@ import {
   TouchableOpacity,
   FlatList,
   SafeAreaView,
+  Dimensions,
 } from 'react-native';
+
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const TILE_WIDTH = Math.floor((SCREEN_WIDTH - 32 - 12) / 2);
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Font, Radius, Spacing } from '../components/theme';
@@ -42,6 +46,8 @@ export default function MyCardsScreen({ navigation }: Props) {
           <FlatList
             data={cards}
             keyExtractor={(item) => item.id}
+            numColumns={2}
+            columnWrapperStyle={styles.row}
             contentContainerStyle={styles.list}
             ListHeaderComponent={
               <TouchableOpacity
@@ -55,17 +61,18 @@ export default function MyCardsScreen({ navigation }: Props) {
             renderItem={({ item }) => {
               const libCard = cardLibrary.find((c) => c.id === item.cardLibraryId);
               return (
-                <View style={styles.card}>
+                <View style={[styles.card, { width: TILE_WIDTH }]}>
                   {libCard && (
                     <CreditCardGraphic
                       cardId={libCard.id}
                       cardName={libCard.name}
                       network={libCard.network}
+                      width={TILE_WIDTH}
                     />
                   )}
                   <View style={styles.cardDetails}>
-                    <Text style={styles.cardName}>{item.name}</Text>
-                    <Text style={styles.cardMeta}>{item.perks.length} perks tracked</Text>
+                    <Text style={styles.cardName} numberOfLines={1}>{item.name}</Text>
+                    <Text style={styles.cardMeta}>{item.perks.length} perks</Text>
                   </View>
                 </View>
               );
@@ -112,7 +119,8 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: Colors.surface,
   },
-  list: { padding: Spacing.lg, gap: Spacing.md },
+  list: { padding: Spacing.lg },
+  row: { gap: 12, marginBottom: Spacing.md },
   addCardRow: {
     flexDirection: 'row',
     alignItems: 'center',

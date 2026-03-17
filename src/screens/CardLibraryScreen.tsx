@@ -7,7 +7,12 @@ import {
   TouchableOpacity,
   StyleSheet,
   SafeAreaView,
+  Dimensions,
 } from 'react-native';
+
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+// 16px padding each side + 12px gap between the two columns
+const TILE_WIDTH = Math.floor((SCREEN_WIDTH - 32 - 12) / 2);
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Font, Radius, Spacing } from '../components/theme';
@@ -152,6 +157,7 @@ export default function CardLibraryScreen({ navigation }: Props) {
                     card={card}
                     isAdded={addedIds.has(card.id)}
                     onPress={() => setSelectedCard(card)}
+                    width={TILE_WIDTH}
                   />
                 ))}
               </View>
